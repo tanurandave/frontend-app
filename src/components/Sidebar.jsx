@@ -10,8 +10,9 @@ import {
   LogOut
 } from 'lucide-react'
 
-const Sidebar = () => {
+const Sidebar = ({ userRole }) => {
   const { user, logout } = useAuth()
+  const role = userRole || user?.role
 
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -22,11 +23,23 @@ const Sidebar = () => {
     { to: '/admin/enrollments', icon: UserCheck, label: 'Enrollments' },
   ]
 
+  const trainerLinks = [
+    { to: '/trainer', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/trainer/modules', icon: BookOpen, label: 'My Modules' },
+    { to: '/trainer/schedule', icon: Calendar, label: 'Schedule' },
+    { to: '/trainer/profile', icon: UserCheck, label: 'My Profile' },
+  ]
+
   const studentLinks = [
     { to: '/student', icon: LayoutDashboard, label: 'Dashboard' },
   ]
 
-  const links = user?.role === 'ADMIN' ? adminLinks : studentLinks
+  let links = studentLinks
+  if (role === 'ADMIN') {
+    links = adminLinks
+  } else if (role === 'TRAINER') {
+    links = trainerLinks
+  }
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-50">
@@ -43,7 +56,7 @@ const Sidebar = () => {
             <NavLink
               key={link.to}
               to={link.to}
-              end={link.to === '/admin' || link.to === '/student'}
+              end={link.to === '/admin' || link.to === '/student' || link.to === '/trainer'}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive

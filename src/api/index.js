@@ -1,12 +1,13 @@
 import axios from 'axios'
 
-const API_BASE_URL = '/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 })
 
 // Add token to requests
@@ -32,6 +33,15 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
+    
+    // Log the exact error for debugging
+    console.error('API Error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: error.config
+    })
+    
     return Promise.reject(error)
   }
 )
@@ -41,15 +51,23 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   register: (data) => api.post('/auth/register', data),
   getUser: (id) => api.get(`/auth/user/${id}`),
+  resetPassword: (data) => api.post('/auth/forgot-password', data),
 }
 
 // User APIs (for admin to get all users)
 export const userAPI = {
   getAll: () => api.get('/users'),
-  getStudents: () => api.get('/users/role/STUDENT'),
-  getTrainers: () => api.get('/users/role/TRAINER'),
+  getStudents: () => api.get('/users/students'),
+  getTrainers: () => api.get('/users/trainers'),
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
+  bulkUpload: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/users/bulk-upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
 }
@@ -69,7 +87,9 @@ export const courseAPI = {
 export const enrollmentAPI = {
   getAll: () => api.get('/enrollments'),
   enroll: (data) => api.post('/enrollments', data),
+  bulkEnroll: (data) => api.post('/enrollments/bulk', data),
   getByStudent: (studentId) => api.get(`/enrollments/student/${studentId}`),
+  getStudentCourses: (studentId) => api.get(`/enrollments/student/${studentId}/courses`),
   getByCourse: (courseId) => api.get(`/enrollments/course/${courseId}`),
   delete: (id) => api.delete(`/enrollments/${id}`),
 }
@@ -80,6 +100,7 @@ export const schedulingAPI = {
   getAllWeeks: () => api.get('/scheduling/weeks'),
   getWeekById: (id) => api.get(`/scheduling/weeks/${id}`),
   createSlot: (weekId, data) => api.post(`/scheduling/weeks/${weekId}/slots`, data),
+  updateSlot: (weekId, slotId, data) => api.put(`/scheduling/weeks/${weekId}/slots/${slotId}`, data),
   getSlotsByWeek: (weekId) => api.get(`/scheduling/weeks/${weekId}/slots`),
   getSlotsByTrainer: (trainerId) => api.get(`/scheduling/trainers/${trainerId}/slots`),
   deleteSlot: (slotId) => api.delete(`/scheduling/slots/${slotId}`),

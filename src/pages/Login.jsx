@@ -1,34 +1,62 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { showToast } from '../utils/toast'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState('STUDENT')
+  const [adminKey, setAdminKey] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   
   const { login } = useAuth()
   const navigate = useNavigate()
+  const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'ADMIN_SECRET'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
+    // If user selected ADMIN require an admin access key (extra gate)
+    if (role === 'ADMIN') {
+      if (!adminKey || adminKey !== ADMIN_KEY) {
+        const msg = 'Invalid admin access key'
+        setError(msg)
+        showToast.error(msg)
+        setLoading(false)
+        return
+      }
+    }
 
     try {
       const user = await login(email, password)
+      showToast.success(`Welcome back, ${user.name}!`)
+      // Ensure selected role matches the account role returned by backend
+      if (role !== user.role) {
+        const msg = `Selected role (${role}) does not match account role (${user.role}).` 
+        setError(msg)
+        showToast.error(msg)
+        setLoading(false)
+        return
+      }
+
       if (user.role === 'ADMIN') {
         navigate('/admin')
       } else if (user.role === 'TRAINER') {
-        navigate('/admin')
-      } else {
+        navigate('/trainer')
+      } else if (user.role === 'STUDENT') {
         navigate('/student')
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials')
+      const errorMsg = err.response?.data?.message || 'Invalid credentials'
+      setError(errorMsg)
+      showToast.error(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -36,6 +64,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
+      <ToastContainer />
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 relative overflow-hidden">
         {/* Decorative circles */}
@@ -87,6 +116,18 @@ const Login = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Login As</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="ADMIN">Admin</option>
+                  <option value="TRAINER">Trainer</option>
+                  <option value="STUDENT">Student</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input
                   type="email"
@@ -124,10 +165,25 @@ const Login = () => {
                   <input type="checkbox" className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500" />
                   <span className="ml-2 text-sm text-gray-600">Remember me</span>
                 </label>
-                <a href="#" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                   Forgot password?
-                </a>
+                </Link>
               </div>
+
+              {/* Admin access key - only visible when ADMIN selected */}
+              {role === 'ADMIN' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Admin Access Key</label>
+                  <input
+                    type="password"
+                    value={adminKey}
+                    onChange={(e) => setAdminKey(e.target.value)}
+                    className="input-field"
+                    placeholder="Enter admin access key"
+                    required
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

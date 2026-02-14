@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { showToast } from '../utils/toast'
 import { Eye, EyeOff, Loader2, Check } from 'lucide-react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -27,12 +30,16 @@ const Register = () => {
     setError('')
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      const errorMsg = 'Passwords do not match'
+      setError(errorMsg)
+      showToast.error(errorMsg)
       return
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+      const errorMsg = 'Password must be at least 6 characters'
+      setError(errorMsg)
+      showToast.error(errorMsg)
       return
     }
 
@@ -45,9 +52,12 @@ const Register = () => {
         password: formData.password,
         role: formData.role
       })
-      navigate('/login')
+      showToast.success('Registration successful! Redirecting to login...')
+      setTimeout(() => navigate('/login'), 2000)
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed')
+      const errorMsg = err.response?.data?.message || 'Registration failed'
+      setError(errorMsg)
+      showToast.error(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -73,6 +83,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex">
+      <ToastContainer />
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-secondary-600 via-secondary-700 to-primary-700 relative overflow-hidden">
         {/* Decorative circles */}
