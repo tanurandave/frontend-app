@@ -103,7 +103,14 @@ const Students = () => {
           role: 'STUDENT'
         })
         
-        setStudents([...students, response.data.user])
+        // AuthResponse returns {token, email, name, role, userId} - not wrapped in 'user'
+        const newUser = {
+          id: response.data.userId,
+          name: response.data.name,
+          email: response.data.email,
+          role: response.data.role
+        }
+        setStudents([...students, newUser])
         showToast.success('Student added successfully!')
       }
 

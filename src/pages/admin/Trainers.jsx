@@ -115,8 +115,11 @@ const Trainers = () => {
           role: 'TRAINER'
         })
         
-        setTrainers([...trainers, response.data.user])
-        showToast.success('Trainer added successfully!')
+        const newTrainer = response.data.user || response.data
+        if (newTrainer) {
+          setTrainers([...trainers, newTrainer])
+          showToast.success('Trainer added successfully!')
+        }
       }
 
       setShowAddModal(false)
@@ -170,8 +173,8 @@ const Trainers = () => {
   }
 
   const filteredTrainers = trainers.filter(trainer =>
-    trainer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trainer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    trainer && (trainer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trainer.email?.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   return (

@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
-    
+
     if (token && storedUser) {
       setUser(JSON.parse(storedUser))
     }
@@ -28,11 +28,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password })
     const { token, ...userData } = response.data
-    
+
+    console.log('Login Token:', token)
+
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
-    
+
     return userData
   }
 
