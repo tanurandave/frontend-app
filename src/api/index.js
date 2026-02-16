@@ -33,7 +33,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
-    
+
     // Log the exact error for debugging
     console.error('API Error:', {
       status: error.response?.status,
@@ -41,7 +41,7 @@ api.interceptors.response.use(
       data: error.response?.data,
       config: error.config
     })
-    
+
     return Promise.reject(error)
   }
 )
@@ -81,6 +81,9 @@ export const courseAPI = {
   delete: (id) => api.delete(`/courses/${id}`),
   addModule: (courseId, data) => api.post(`/courses/${courseId}/modules`, data),
   getModules: (courseId) => api.get(`/courses/${courseId}/modules`),
+  deleteModule: (moduleId) => api.delete(`/courses/modules/${moduleId}`),
+  updateModule: (moduleId, data) => api.put(`/courses/modules/${moduleId}`, data),
+  getTrainers: (courseId) => api.get(`/courses/${courseId}/trainers`),
 }
 
 // Enrollment APIs
@@ -88,10 +91,21 @@ export const enrollmentAPI = {
   getAll: () => api.get('/enrollments'),
   enroll: (data) => api.post('/enrollments', data),
   bulkEnroll: (data) => api.post('/enrollments/bulk', data),
+  bulkUpload: (courseId, file) => {
+    const formData = new FormData()
+    formData.append('courseId', courseId)
+    formData.append('file', file)
+    return api.post('/enrollments/bulk-upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
   getByStudent: (studentId) => api.get(`/enrollments/student/${studentId}`),
   getStudentCourses: (studentId) => api.get(`/enrollments/student/${studentId}/courses`),
   getByCourse: (courseId) => api.get(`/enrollments/course/${courseId}`),
   delete: (id) => api.delete(`/enrollments/${id}`),
+  request: (data) => api.post('/enrollments/request', data),
+  approve: (id) => api.put(`/enrollments/${id}/approve`),
+  reject: (id) => api.put(`/enrollments/${id}/reject`),
 }
 
 // Scheduling APIs
@@ -114,6 +128,14 @@ export const timetableAPI = {
 // Stats APIs
 export const statsAPI = {
   getDashboardStats: () => api.get('/stats/dashboard'),
+}
+
+// Notification APIs
+export const notificationAPI = {
+  getUserNotifications: (userId) => api.get(`/notifications/user/${userId}`),
+  getUnreadNotifications: (userId) => api.get(`/notifications/user/${userId}/unread`),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: (userId) => api.put(`/notifications/user/${userId}/read-all`),
 }
 
 export default api

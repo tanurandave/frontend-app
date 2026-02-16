@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
-  BookOpen, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  BookOpen,
+  Calendar,
   UserCheck,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react'
 
 const Sidebar = ({ userRole }) => {
@@ -58,10 +59,9 @@ const Sidebar = ({ userRole }) => {
               to={link.to}
               end={link.to === '/admin' || link.to === '/student' || link.to === '/trainer'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
+                  ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
                 }`
               }
             >

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api'
+import { courseAPI, schedulingAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
 import { ArrowLeft, BookOpen, Users, Calendar, AlertCircle, Loader } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const TrainerModules = () => {
-  const { user, isTrainer } = useAuth()
+  const { user, isTrainer, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [modules, setModules] = useState([])
   const [loading, setLoading] = useState(true)
@@ -21,23 +21,60 @@ const TrainerModules = () => {
   }
 
   useEffect(() => {
+    if (authLoading) return
+
     if (!isTrainer) {
       showToast.error('Unauthorized access')
       navigate('/login')
       return
     }
-    fetchModules()
-  }, [isTrainer, user])
+    if (user?.id) {
+      fetchModules()
+    } else {
+      setLoading(false)
+    }
+  }, [isTrainer, user, authLoading])
 
   const fetchModules = async () => {
     try {
       setLoading(true)
       setError(null)
-      const res = await api.get('/module')
-      const allModules = res.data || []
-      // Filter modules assigned to current trainer
-      const trainerModules = allModules.filter(m => m.trainerId === user?.id)
-      setModules(trainerModules)
+
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
+
+      // Get all slots for this trainer to find assigned modules
+      const slotsRes = await schedulingAPI.getSlotsByTrainer(user.id)
+      const slots = slotsRes.data || []
+
+      // Get unique module IDs from slots
+      const moduleIds = [...new Set(slots.filter(s => s.moduleId).map(s => s.moduleId))]
+
+      // Since we don't have a direct "get module by id" that returns rich info easily without course 
+      // let's just get all courses and extract the modules if they match our IDs
+      const coursesRes = await courseAPI.getAll()
+      const allCourses = coursesRes.data || []
+
+      const assignedModules = []
+      allCourses.forEach(course => {
+        if (course.modules) {
+          course.modules.forEach(module => {
+            if (moduleIds.includes(module.id)) {
+              assignedModules.push({
+                ...module,
+                courseName: course.name,
+                courseId: course.id,
+                // Additional info from slots if needed
+                slots: slots.filter(s => s.moduleId === module.id).length
+              })
+            }
+          })
+        }
+      })
+
+      setModules(assignedModules)
     } catch (err) {
       console.error('Error fetching modules:', err)
       setError(err.response?.data?.message || 'Failed to load modules')
@@ -47,7 +84,7 @@ const TrainerModules = () => {
     }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader className="animate-spin" size={48} color="#3b82f6" />
@@ -58,8 +95,8 @@ const TrainerModules = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar userRole="TRAINER" />
-      
-      <div className="flex-1 flex flex-col">
+
+      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
         {/* Top Navigation */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -105,36 +142,27 @@ const TrainerModules = () => {
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{module.name}</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{module.name}</h3>
+                  <p className="text-xs text-blue-600 font-medium mb-2">{module.courseName}</p>
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">{module.description}</p>
 
                   <div className="space-y-3 mb-6 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar size={16} />
-                      <span>Duration: {module.duration || 'N/A'}</span>
+                      <span>Duration: {module.duration || 'N/A'} Hours</span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
-                      <Users size={16} />
-                      <span>Enrolled: {module.enrollmentCount || 0} students</span>
+                      <Calendar size={16} />
+                      <span>Sessions: {module.slots || 0} slots assigned</span>
                     </div>
-                    {module.slots && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar size={16} />
-                        <span>Sessions: {module.slots} slots</span>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex gap-2">
                     <button
+                      onClick={() => navigate(`/trainer/schedule?module=${module.id}`)}
                       className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                     >
-                      View Details
-                    </button>
-                    <button
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
-                    >
-                      Edit
+                      View Schedule
                     </button>
                   </div>
                 </div>
@@ -145,7 +173,7 @@ const TrainerModules = () => {
               <BookOpen className="mx-auto text-gray-400 mb-4" size={48} />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No modules assigned</h3>
               <p className="text-gray-500">
-                You don't have any modules assigned yet. Contact administration to get modules assigned.
+                You don't have any modules assigned in the schedule yet.
               </p>
             </div>
           )}

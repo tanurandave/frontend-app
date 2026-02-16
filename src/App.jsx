@@ -10,19 +10,22 @@ import AdminDashboard from './pages/admin/Dashboard'
 import AdminStudents from './pages/admin/Students'
 import AdminTrainers from './pages/admin/Trainers'
 import AdminCourses from './pages/admin/Courses'
+import AdminCourseDetails from './pages/admin/CourseDetails'
 import AdminScheduling from './pages/admin/Scheduling'
 import AdminEnrollments from './pages/admin/Enrollments'
+import AdminNotifications from './pages/admin/Notifications'
 import TrainerDashboard from './pages/trainer/Dashboard'
 import TrainerModules from './pages/trainer/Modules'
 import TrainerSchedule from './pages/trainer/Schedule'
 import TrainerProfile from './pages/trainer/Profile'
+import TrainerNotifications from './pages/trainer/Notifications'
 import StudentDashboard from './pages/student/Dashboard'
 import PrivateRoute from './components/PrivateRoute'
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ToastContainer
           position="top-right"
           autoClose={3000}
@@ -40,7 +43,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          
+
           {/* Admin Routes */}
           <Route path="/admin" element={
             <PrivateRoute allowedRoles={['ADMIN']}>
@@ -62,6 +65,11 @@ function App() {
               <AdminCourses />
             </PrivateRoute>
           } />
+          <Route path="/admin/courses/:id" element={
+            <PrivateRoute allowedRoles={['ADMIN']}>
+              <AdminCourseDetails />
+            </PrivateRoute>
+          } />
           <Route path="/admin/scheduling" element={
             <PrivateRoute allowedRoles={['ADMIN']}>
               <AdminScheduling />
@@ -70,6 +78,11 @@ function App() {
           <Route path="/admin/enrollments" element={
             <PrivateRoute allowedRoles={['ADMIN']}>
               <AdminEnrollments />
+            </PrivateRoute>
+          } />
+          <Route path="/admin/notifications" element={
+            <PrivateRoute allowedRoles={['ADMIN']}>
+              <AdminNotifications />
             </PrivateRoute>
           } />
 
@@ -94,14 +107,19 @@ function App() {
               <TrainerProfile />
             </PrivateRoute>
           } />
-          
+          <Route path="/trainer/notifications" element={
+            <PrivateRoute allowedRoles={['TRAINER']}>
+              <TrainerNotifications />
+            </PrivateRoute>
+          } />
+
           {/* Student Routes */}
           <Route path="/student" element={
             <PrivateRoute allowedRoles={['STUDENT']}>
               <StudentDashboard />
             </PrivateRoute>
           } />
-          
+
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>

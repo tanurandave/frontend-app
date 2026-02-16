@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api'
+import { enrollmentAPI, courseAPI, schedulingAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
 import { LogOut, Users, BookOpen, Calendar, Clock, AlertCircle } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const TrainerDashboard = () => {
-  const { user, logout, isTrainer } = useAuth()
+  const { user, logout, isTrainer, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState({
     assignedSlots: 0,
@@ -27,46 +27,56 @@ const TrainerDashboard = () => {
   }
 
   useEffect(() => {
+    if (authLoading) return
+
     if (!isTrainer) {
       showToast.error('Unauthorized access')
       navigate('/login')
       return
     }
-    
-    fetchTrainerStats()
-  }, [isTrainer, user])
+
+    if (user?.id) {
+      fetchTrainerStats()
+    } else {
+      setLoading(false)
+    }
+  }, [isTrainer, user, authLoading])
 
   const fetchTrainerStats = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch enrollments to count students
-      const enrollmentsRes = await api.get('/enrollment')
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
+
+      // Fetch all data in parallel using correct API wrappers
+      const [enrollmentsRes, coursesRes, slotsRes] = await Promise.all([
+        enrollmentAPI.getAll(),
+        courseAPI.getAll(),
+        schedulingAPI.getSlotsByTrainer(user.id)
+      ])
+
       const enrollments = enrollmentsRes.data || []
+      const courses = coursesRes.data || []
+      const slots = slotsRes.data || []
+
+      // Count unique students across all enrollments
       const uniqueStudents = new Set(enrollments.map(e => e.studentId)).size
 
-      // Fetch modules
-      const modulesRes = await api.get('/module')
-      const modules = modulesRes.data || []
-      const trainerModules = modules.filter(m => m.trainerId === user?.id)
-
-      // Fetch courses
-      const coursesRes = await api.get('/course')
-      const courses = coursesRes.data || []
-
-      // Fetch slots/schedule
-      const slotsRes = await api.get('/scheduling/trainer/' + user?.id)
-      const slots = slotsRes.data || []
+      // Modules count - count unique moduleIds in assigned slots
+      const trainerModules = new Set(slots.filter(s => s.moduleId).map(s => s.moduleId)).size
 
       setStats({
         assignedSlots: slots.length,
         students: uniqueStudents,
         courses: courses.length,
-        modules: trainerModules.length
+        modules: trainerModules
       })
 
-      setTeaching(slots.slice(0, 5)) // Get first 5 for dashboard preview
+      setTeaching(slots.slice(0, 5))
     } catch (err) {
       console.error('Error fetching trainer stats:', err)
       setError(err.response?.data?.message || 'Failed to load dashboard')
@@ -82,7 +92,7 @@ const TrainerDashboard = () => {
     navigate('/login')
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -93,8 +103,8 @@ const TrainerDashboard = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar userRole="TRAINER" />
-      
-      <div className="flex-1 flex flex-col">
+
+      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
         {/* Top Navigation */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -195,12 +205,12 @@ const TrainerDashboard = () => {
                     <div className="flex items-center gap-4">
                       <Calendar className="text-blue-600" size={20} />
                       <div>
-                        <p className="font-medium text-gray-900">{slot.day || 'Schedule'}</p>
+                        <p className="font-medium text-gray-900">{slot.dayOfWeek || 'Schedule'}</p>
                         <p className="text-sm text-gray-500">{slot.startTime} - {slot.endTime}</p>
                       </div>
                     </div>
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {slot.module || 'Module'}
+                      {slot.moduleName || 'Module'}
                     </span>
                   </div>
                 ))}

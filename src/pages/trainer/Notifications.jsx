@@ -1,0 +1,24 @@
+import Sidebar from '../../components/Sidebar'
+
+const TrainerNotifications = () => {
+    return (
+        <div className="flex bg-gray-50 min-h-screen">
+            <Sidebar userRole="TRAINER" />
+            <div className="flex-1 ml-64 p-8">
+                <header className="mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+                    <p className="text-gray-600 mt-2">View your notifications here.</p>
+                </header>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="text-center py-12">
+                        <h3 className="text-lg font-medium text-gray-900">No new notifications</h3>
+                        <p className="text-gray-500 mt-2">You're all caught up!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default TrainerNotifications

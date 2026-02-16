@@ -20,7 +20,11 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user')
 
     if (token && storedUser) {
-      setUser(JSON.parse(storedUser))
+      const parsedUser = JSON.parse(storedUser)
+      if (parsedUser.userId && !parsedUser.id) {
+        parsedUser.id = parsedUser.userId
+      }
+      setUser(parsedUser)
     }
     setLoading(false)
   }, [])
@@ -28,6 +32,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password })
     const { token, ...userData } = response.data
+
+    // Normalize user ID to both id and userId for compatibility
+    if (userData.userId && !userData.id) {
+      userData.id = userData.userId
+    }
 
     console.log('Login Token:', token)
 

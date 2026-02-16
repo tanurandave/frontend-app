@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api'
+import api, { userAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
 import { ArrowLeft, User, Mail, Phone, MapPin, AlertCircle, Loader, CheckCircle } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
@@ -44,16 +44,18 @@ const TrainerProfile = () => {
     try {
       setLoading(true)
       setError(null)
-      // For now, use the logged-in user data
-      // In production, fetch from /api/user/{trainerId}
+
+      if (!user?.id) return;
+
+      const response = await userAPI.getById(user.id)
       const data = {
-        name: user?.name || '',
-        email: user?.email || '',
-        phone: user?.phone || '',
-        experience: user?.experience || '',
-        specialization: user?.specialization || '',
-        bio: user?.bio || '',
-        qualification: user?.qualification || ''
+        name: response.data.name || '',
+        email: response.data.email || '',
+        phone: response.data.phone || '',
+        experience: response.data.experience || '',
+        specialization: response.data.specialization || '',
+        bio: response.data.bio || '',
+        qualification: response.data.qualification || ''
       }
       setFormData(data)
       setOriginalData(data)
@@ -77,13 +79,13 @@ const TrainerProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     // Validation
     if (!formData.name.trim()) {
       showToast.error('Name is required')
       return
     }
-    
+
     if (!formData.email.trim()) {
       showToast.error('Email is required')
       return
@@ -97,9 +99,14 @@ const TrainerProfile = () => {
     try {
       setSaving(true)
       setError(null)
-      
+
+      if (!user?.id) {
+        showToast.error('User session expired. Please login again.')
+        return
+      }
+
       // Update user profile
-      await api.put(`/user/${user?.id}`, {
+      await userAPI.update(user.id, {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -112,7 +119,7 @@ const TrainerProfile = () => {
       setSuccess(true)
       setOriginalData(formData)
       showToast.success('Profile updated successfully!')
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
@@ -138,8 +145,8 @@ const TrainerProfile = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar userRole="TRAINER" />
-      
-      <div className="flex-1 flex flex-col">
+
+      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
         {/* Top Navigation */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">

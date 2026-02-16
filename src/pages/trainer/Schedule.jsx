@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api'
+import { schedulingAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
 import { ArrowLeft, Calendar, Clock, MapPin, Users, AlertCircle, Loader } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const TrainerSchedule = () => {
-  const { user, isTrainer } = useAuth()
+  const { user, isTrainer, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [schedule, setSchedule] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,23 +24,36 @@ const TrainerSchedule = () => {
   }
 
   useEffect(() => {
+    if (authLoading) return
+
     if (!isTrainer) {
       showToast.error('Unauthorized access')
       navigate('/login')
       return
     }
-    fetchSchedule()
-  }, [isTrainer, user])
+    if (user?.id) {
+      fetchSchedule()
+    } else {
+      setLoading(false)
+    }
+  }, [isTrainer, user, authLoading])
 
   const fetchSchedule = async () => {
     try {
       setLoading(true)
       setError(null)
-      const res = await api.get(`/scheduling/trainer/${user?.id}`)
+
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
+
+      const res = await schedulingAPI.getSlotsByTrainer(user.id)
       const slots = res.data || []
+
       // Sort slots by day and time
       const sorted = slots.sort((a, b) => {
-        const dayOrder = days.indexOf(a.day) - days.indexOf(b.day)
+        const dayOrder = days.indexOf(a.dayOfWeek) - days.indexOf(b.dayOfWeek)
         if (dayOrder !== 0) return dayOrder
         return a.startTime.localeCompare(b.startTime)
       })
@@ -54,9 +67,9 @@ const TrainerSchedule = () => {
     }
   }
 
-  const filteredSchedule = selectedDay === 'all' 
-    ? schedule 
-    : schedule.filter(slot => slot.day === selectedDay)
+  const filteredSchedule = selectedDay === 'all'
+    ? schedule
+    : schedule.filter(slot => slot.dayOfWeek === selectedDay)
 
   const getDayColor = (day) => {
     const colors = {
@@ -71,7 +84,7 @@ const TrainerSchedule = () => {
     return colors[day] || 'bg-gray-100 text-gray-700'
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader className="animate-spin" size={48} color="#3b82f6" />
@@ -82,8 +95,8 @@ const TrainerSchedule = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar userRole="TRAINER" />
-      
-      <div className="flex-1 flex flex-col">
+
+      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
         {/* Top Navigation */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -119,11 +132,10 @@ const TrainerSchedule = () => {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedDay('all')}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    selectedDay === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${selectedDay === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                 >
                   All Days
                 </button>
@@ -131,11 +143,10 @@ const TrainerSchedule = () => {
                   <button
                     key={day}
                     onClick={() => setSelectedDay(day)}
-                    className={`px-4 py-2 rounded-lg font-medium transition ${
-                      selectedDay === day
-                        ? `${getDayColor(day)} border-2`
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${selectedDay === day
+                      ? `${getDayColor(day)} border-2 border-blue-400`
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
                   >
                     {day.slice(0, 3)}
                   </button>
@@ -155,12 +166,13 @@ const TrainerSchedule = () => {
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDayColor(slot.day)}`}>
-                          {slot.day}
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDayColor(slot.dayOfWeek)}`}>
+                          {slot.dayOfWeek}
                         </span>
                         <span className="text-sm text-gray-500">{slot.startTime} - {slot.endTime}</span>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">{slot.module || 'Module'}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">{slot.moduleName || 'Module Name Not Set'}</h3>
+                      <p className="text-sm text-blue-600 font-medium">{slot.courseName}</p>
                     </div>
                   </div>
 
@@ -168,30 +180,17 @@ const TrainerSchedule = () => {
                     <div className="flex items-center gap-3 text-gray-600">
                       <Clock size={18} className="text-blue-600" />
                       <div>
-                        <p className="text-xs text-gray-500">Duration</p>
-                        <p className="font-medium">{slot.duration || '1 hour'}</p>
+                        <p className="text-xs text-gray-500">Slot Type</p>
+                        <p className="font-medium">Slot #{slot.slotNumber}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-gray-600">
                       <Users size={18} className="text-green-600" />
                       <div>
-                        <p className="text-xs text-gray-500">Students</p>
-                        <p className="font-medium">{slot.studentCount || '0'}</p>
+                        <p className="text-xs text-gray-500">Trainer</p>
+                        <p className="font-medium">{slot.trainerName}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-600">
-                      <MapPin size={18} className="text-red-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">Room</p>
-                        <p className="font-medium">{slot.room || 'TBD'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                      View Details →
-                    </button>
                   </div>
                 </div>
               ))}
