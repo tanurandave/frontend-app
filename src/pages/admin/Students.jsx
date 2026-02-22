@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api, { userAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
 import Header from '../../components/Header'
+import { useSidebar } from '../../context/SidebarContext'
 import Table from '../../components/ui/Table'
-import { Plus, Mail, Trash2, Edit, X, AlertCircle, Loader, CheckCircle, Upload } from 'lucide-react'
+import { Plus, Mail, Trash2, Edit, X, AlertCircle, Loader, CheckCircle, Upload, Eye, User, Calendar, Shield } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const Students = () => {
   const { isAdmin } = useAuth()
+  const navigate = useNavigate()
+  const { isCollapsed } = useSidebar()
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,6 +32,7 @@ const Students = () => {
   })
   const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
+  const [viewingProfile, setViewingProfile] = useState(null)
 
   const showToast = {
     success: (msg) => toast.success(msg),
@@ -204,13 +209,13 @@ const Students = () => {
       header: 'Profile',
       accessor: 'name',
       render: (item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-sm">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/students/${item.id}`)}>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform">
             {item.name?.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-bold text-gray-900">{item.name}</p>
-            <p className="text-xs text-gray-500">+1 9876543210</p>
+            <p className="font-bold text-gray-900 hover:text-blue-600 transition-colors">{item.name}</p>
+            <p className="text-xs text-gray-500">{item.phone || 'No phone'}</p>
           </div>
         </div>
       )
@@ -245,7 +250,7 @@ const Students = () => {
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar userRole="ADMIN" />
 
-      <div className="flex-1 flex flex-col ml-64">
+      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8">
@@ -284,8 +289,12 @@ const Students = () => {
             }
             renderRow={(item) => (
               <>
-                <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50">
-                  <Plus size={18} /> {/* Using Plus as View icon placeholder if Eye not imported or similar */}
+                <button
+                  onClick={() => navigate(`/admin/students/${item.id}`)}
+                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
+                  title="View Full Profile"
+                >
+                  <Eye size={18} />
                 </button>
                 <button
                   onClick={() => handleEdit(item)}

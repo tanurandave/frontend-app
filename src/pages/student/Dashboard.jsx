@@ -1,17 +1,26 @@
 import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/Sidebar'
+import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
-import { BookOpen, Clock, Calendar, Award, Bell, CheckCircle, XCircle, User, Layers } from 'lucide-react'
+import {
+  BookOpen, Clock, Calendar, Award, Bell, CheckCircle, XCircle,
+  User, Layers, Play, Search, TrendingUp, ArrowRight, Settings,
+  BarChart3, GraduationCap
+} from 'lucide-react'
 import { enrollmentAPI, timetableAPI, notificationAPI, courseAPI } from '../../api'
+import { toast } from 'react-toastify'
 
 const StudentDashboard = () => {
   const { user } = useAuth()
+  const { isCollapsed } = useSidebar()
+  const navigate = useNavigate()
   const [enrolledCourses, setEnrolledCourses] = useState([])
-  const [availableCourses, setAvailableCourses] = useState([]) // New state
+  const [availableCourses, setAvailableCourses] = useState([])
   const [timetable, setTimetable] = useState([])
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
-  const [requestingCourse, setRequestingCourse] = useState(null) // Track requesting state
+  const [requestingCourse, setRequestingCourse] = useState(null)
 
   useEffect(() => {
     if (user?.id) {
@@ -26,11 +35,10 @@ const StudentDashboard = () => {
         enrollmentAPI.getByStudent(user.id),
         timetableAPI.getStudentTimetable(user.id),
         notificationAPI.getUserNotifications(user.id),
-        courseAPI.getAll() // Fetch all courses
+        courseAPI.getAll()
       ])
 
-      const enrollments = enrollmentsRes.data
-      setEnrolledCourses(enrollments)
+      setEnrolledCourses(enrollmentsRes.data)
       setTimetable(timetableRes.data || [])
       setNotifications(notificationsRes.data)
       setAvailableCourses(coursesRes.data)
@@ -42,39 +50,39 @@ const StudentDashboard = () => {
   }
 
   const handleRequestEnrollment = async (courseId) => {
+    // Check if already enrolled (APPROVED) before calling API
+    const existingStatus = getEnrollmentStatus(courseId)
+    if (existingStatus === 'APPROVED') {
+      toast.warning('You are already enrolled in this course!')
+      return
+    }
+    if (existingStatus === 'PENDING') {
+      toast.info('Your enrollment request is already pending.')
+      return
+    }
+
     try {
       setRequestingCourse(courseId)
       await enrollmentAPI.request({ studentId: user.id, courseId })
-      // Refresh data to show Pending status
+      toast.success('Enrollment request sent successfully!')
       const enrollmentsRes = await enrollmentAPI.getByStudent(user.id)
       setEnrolledCourses(enrollmentsRes.data)
-      // Also maybe add a local notification or update notifications
-      setNotifications(prev => [
-        ...prev,
-        { id: Date.now(), message: 'Enrollment request sent successfully', isRead: false, createdAt: new Date() }
-      ])
     } catch (error) {
       console.error("Failed to request enrollment", error)
-      alert("Failed to request enrollment: " + (error.response?.data?.message || error.message))
+      const errorMsg = error.response?.data?.message || error.message
+      if (errorMsg?.toLowerCase().includes('already enrolled') || errorMsg?.toLowerCase().includes('request pending')) {
+        toast.warning('You are already enrolled in this course!')
+      } else {
+        toast.error('Failed to request enrollment: ' + errorMsg)
+      }
     } finally {
       setRequestingCourse(null)
     }
   }
 
-  // Helper to check enrollment status for a course
   const getEnrollmentStatus = (courseId) => {
     const enrollment = enrolledCourses.find(e => e.courseId === courseId)
     return enrollment ? enrollment.status : null
-  }
-
-  // Helper to get status color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED': return 'bg-green-50 text-green-700 border-green-100'
-      case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-100'
-      case 'REJECTED': return 'bg-red-50 text-red-700 border-red-100'
-      default: return 'bg-gray-50 text-gray-700 border-gray-100'
-    }
   }
 
   const markAsRead = async (id) => {
@@ -98,245 +106,322 @@ const StudentDashboard = () => {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   const timeSlots = ['8:00 - 11:00', '11:00 - 14:00', '14:00 - 17:00', '17:00 - 20:00']
 
-  const getSlotColor = (module) => {
-    if (!module) return 'bg-gray-50'
-    const colors = {
-      'React': 'bg-blue-500',
-      'Node.js': 'bg-green-500',
-      'Python': 'bg-yellow-500',
-      'AWS': 'bg-orange-500',
-    }
-    return colors[module] || 'bg-gray-500'
-  }
-
-  const getSlotTextColor = (module) => {
-    if (!module) return 'text-gray-400'
-    return 'text-white'
-  }
-
   const getCurrentDay = () => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    return days[new Date().getDay()]
+    const d = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    return d[new Date().getDay()]
   }
-
   const currentDay = getCurrentDay()
 
-  const getTimetableModule = (timeSlot, day) => {
+  const getTimetableModule = (slotIndex, day) => {
+    // slotIndex is 0-3, slotNumber is 1-4
+    const slotNumber = slotIndex + 1
     const slot = timetable.find(t =>
-      t.timeSlot === timeSlot && t.dayOfWeek?.toLowerCase() === day.toLowerCase()
+      t.slotNumber === slotNumber && t.dayOfWeek?.toLowerCase() === day.toLowerCase()
     )
     return slot?.moduleName || ''
   }
 
+  const slotColors = [
+    'bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-violet-500',
+    'bg-pink-500', 'bg-cyan-500', 'bg-amber-500', 'bg-rose-500'
+  ]
+  const getSlotColor = (module) => {
+    if (!module) return ''
+    let hash = 0
+    for (let i = 0; i < module.length; i++) hash = module.charCodeAt(i) + ((hash << 5) - hash)
+    return slotColors[Math.abs(hash) % slotColors.length]
+  }
+
+  // Computed stats
+  const approvedCount = enrolledCourses.filter(e => e.status === 'APPROVED').length
+  const pendingCount = enrolledCourses.filter(e => e.status === 'PENDING').length
+  const unreadNotifs = notifications.filter(n => !n.isRead).length
+  const totalModules = enrolledCourses.reduce((acc, e) => {
+    const course = availableCourses.find(c => c.id === e.courseId)
+    return acc + (course?.modules?.length || 0)
+  }, 0)
+
+  const statCards = [
+    {
+      label: 'Enrolled Courses',
+      value: loading ? '—' : approvedCount,
+      icon: BookOpen,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      iconBg: 'bg-orange-100',
+      description: `${availableCourses.length} available`,
+      trend: '+' + approvedCount
+    },
+    {
+      label: 'Pending Requests',
+      value: loading ? '—' : pendingCount,
+      icon: Clock,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      iconBg: 'bg-blue-100',
+      description: 'Awaiting approval',
+      trend: pendingCount > 0 ? pendingCount + ' active' : 'None'
+    },
+    {
+      label: 'Total Modules',
+      value: loading ? '—' : totalModules,
+      icon: Layers,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50',
+      iconBg: 'bg-emerald-100',
+      description: 'Across all courses',
+      trend: totalModules + ' total'
+    },
+    {
+      label: 'Notifications',
+      value: loading ? '—' : unreadNotifs,
+      icon: Bell,
+      color: 'text-violet-600',
+      bgColor: 'bg-violet-50',
+      iconBg: 'bg-violet-100',
+      description: `${notifications.length} total`,
+      trend: unreadNotifs > 0 ? unreadNotifs + ' new' : 'All read'
+    }
+  ]
+
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8 transition-all duration-300">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name}!</h1>
-            <p className="text-gray-500 mt-1">Here's your learning progress</p>
+      <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+
+        {/* Top Header Bar */}
+        <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-8 py-4">
+            <div className="relative w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/student/notifications')}
+                className="relative p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all"
+              >
+                <Bell size={20} className="text-gray-600" />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                    {unreadNotifs}
+                  </span>
+                )}
+              </button>
+              <button className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all">
+                <Settings size={20} className="text-gray-600" />
+              </button>
+              <div className="flex items-center gap-3 bg-gray-50 pl-1 pr-4 py-1 rounded-full border border-gray-200">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">{user?.name}</p>
+                  <p className="text-[11px] text-gray-400">{user?.email}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative group cursor-pointer">
-              <div className="p-3 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow">
-                <Bell size={20} className="text-gray-600 group-hover:text-primary-600 transition-colors" />
-                {notifications.some(n => !n.isRead) && (
-                  <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+        </div>
+
+        <div className="p-8">
+          {/* Dashboard Title */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1 text-sm">Welcome back! Here's what's happening with your learning.</p>
+          </div>
+
+          {/* Stat Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            {statCards.map((stat, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg hover:shadow-gray-100/50 transition-all duration-300 group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                      <span className={`text-xs font-semibold ${stat.color} ${stat.bgColor} px-2 py-0.5 rounded-full`}>
+                        {stat.trend}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`w-12 h-12 ${stat.iconBg} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <stat.icon className={stat.color} size={22} />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400">{stat.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Middle Section - Enrolled Courses & Notifications */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+            {/* Enrolled Courses - 2 cols */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
+                    <GraduationCap className="text-orange-600" size={18} />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900">My Enrollments</h2>
+                </div>
+                <Link
+                  to="/student/requests"
+                  className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
+                >
+                  View All <ArrowRight size={14} />
+                </Link>
+              </div>
+              <div className="p-6">
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 border-3 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
+                  </div>
+                ) : enrolledCourses.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
+                      <BookOpen className="text-gray-300" size={28} />
+                    </div>
+                    <h3 className="text-gray-500 font-medium">No enrollments yet</h3>
+                    <p className="text-gray-400 text-sm mt-1">Browse courses to get started</p>
+                    <Link
+                      to="/student/view-courses"
+                      className="mt-4 px-5 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors"
+                    >
+                      Browse Courses
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+                    {enrolledCourses.map((enrollment) => {
+                      const status = enrollment.status || 'APPROVED'
+                      const courseDetails = availableCourses.find(c => c.id === enrollment.courseId)
+                      const statusStyles = {
+                        'APPROVED': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        'PENDING': 'bg-amber-50 text-amber-700 border-amber-200',
+                        'REJECTED': 'bg-red-50 text-red-700 border-red-200'
+                      }
+
+                      return (
+                        <div key={enrollment.id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-orange-200 hover:bg-orange-50/30 transition-all group cursor-pointer">
+                          <div className="w-11 h-11 bg-gradient-to-br from-orange-100 to-amber-50 rounded-xl flex items-center justify-center shrink-0">
+                            <BookOpen className="text-orange-600" size={20} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-gray-900 text-sm truncate">{enrollment.courseName}</h4>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusStyles[status] || 'bg-gray-50 text-gray-600'}`}>
+                                {status}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <Calendar size={11} />
+                                {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                              </span>
+                              {courseDetails && (
+                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                  <Layers size={11} />
+                                  {courseDetails.modules?.length || 0} Modules
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="shrink-0">
+                            {status === 'APPROVED' ? (
+                              <Link
+                                to={`/student/courses/${enrollment.courseId}`}
+                                className="p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors inline-flex"
+                              >
+                                <Play size={16} />
+                              </Link>
+                            ) : status === 'PENDING' ? (
+                              <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
+                                <Clock size={16} />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleRequestEnrollment(enrollment.courseId)}
+                                disabled={requestingCourse === enrollment.courseId}
+                                className="px-3 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors text-xs font-semibold"
+                                title="Re-request enrollment"
+                              >
+                                {requestingCourse === enrollment.courseId ? (
+                                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  'Re-request'
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
-
-              {/* Notification Dropdown Preview on Hover could be implemented here */}
             </div>
-            <div className="flex items-center gap-3 bg-white p-2 pr-4 rounded-full shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                {user?.name?.charAt(0)}
-              </div>
-              <span className="font-medium text-gray-700 text-sm hidden md:block">{user?.name}</span>
-            </div>
-          </div>
-        </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="glass-card p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Enrolled Courses</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{loading ? '...' : enrolledCourses.filter(e => e.status === 'APPROVED').length}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
-                <BookOpen className="text-blue-600" size={24} />
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Completed</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">3</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
-                <Award className="text-green-600" size={24} />
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Pending Requests</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{loading ? '...' : enrolledCourses.filter(e => e.status === 'PENDING').length}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-2xl flex items-center justify-center">
-                <Clock className="text-yellow-600" size={24} />
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Notifications</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{notifications.filter(n => !n.isRead).length}</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center">
-                <Bell className="text-orange-600" size={24} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Browse Courses Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <BookOpen className="text-indigo-600" size={20} />
-              Browse Courses
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              <div className="lg:col-span-3 text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-2 text-sm">Loading available courses...</p>
-              </div>
-            ) : availableCourses.length === 0 ? (
-              <div className="lg:col-span-3 flex flex-col items-center justify-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <BookOpen className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-gray-900 font-medium text-lg">No courses available</h3>
-                <p className="text-gray-500 text-sm mt-1">Check back later for new courses</p>
-              </div>
-            ) : (
-              availableCourses.map(course => {
-                const status = getEnrollmentStatus(course.id)
-                const isEnrolled = status === 'APPROVED'
-                const isPending = status === 'PENDING'
-                const isRejected = status === 'REJECTED'
-
-                return (
-                  <div key={course.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="p-3 bg-indigo-50 rounded-lg text-indigo-600">
-                        <BookOpen size={24} />
-                      </div>
-                      {status && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(status)}`}>
-                          {status}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-lg text-gray-900 mb-2">{course.name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">{course.description}</p>
-
-                    <div className="space-y-2 mb-6">
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><Clock size={14} className="text-gray-400" /> {course.duration} Hours</span>
-                        <span className="flex items-center gap-1"><Layers size={14} className="text-gray-400" /> {course.modules ? course.modules.length : 0} Modules</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <User size={14} className="text-gray-400" />
-                        <span>Trainer: <span className="font-medium text-gray-700">{course.primaryTrainerName || 'Not Assigned'}</span></span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleRequestEnrollment(course.id)}
-                      disabled={!!status || requestingCourse === course.id}
-                      className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2
-                                        ${!status
-                          ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm hover:shadow-indigo-200'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'}
-                                    `}
-                    >
-                      {requestingCourse === course.id ? (
-                        <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          {isEnrolled ? 'Enrolled' : isPending ? 'Request Pending' : isRejected ? 'Rejected' : 'Request to Join'}
-                          {!status && <CheckCircle size={16} />}
-                        </>
-                      )}
-                    </button>
+            {/* Notifications - 1 col */}
+            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-violet-100 rounded-xl flex items-center justify-center">
+                    <Bell className="text-violet-600" size={18} />
                   </div>
-                )
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Notifications Section */}
-          <div className="lg:col-span-1">
-            <div className="glass-card p-6 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Bell className="text-orange-600" size={20} />
-                  Notifications
-                </h2>
+                  <h2 className="text-lg font-bold text-gray-900">Notifications</h2>
+                </div>
                 {notifications.some(n => !n.isRead) && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                    className="text-xs text-violet-600 hover:text-violet-700 font-semibold transition-colors"
                   >
                     Mark all read
                   </button>
                 )}
               </div>
-              <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 max-h-[400px]">
+              <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                 {loading ? (
-                  <div className="flex justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+                  <div className="flex justify-center py-12">
+                    <div className="w-7 h-7 border-3 border-violet-200 border-t-violet-500 rounded-full animate-spin"></div>
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-                    <Bell size={32} className="mb-2 opacity-20" />
-                    <p className="text-sm">No notifications yet</p>
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-3">
+                      <Bell className="text-gray-300" size={24} />
+                    </div>
+                    <p className="text-gray-400 text-sm">No notifications yet</p>
                   </div>
                 ) : (
-                  notifications.map((notification) => (
+                  notifications.slice(0, 8).map((notif) => (
                     <div
-                      key={notification.id}
-                      className={`p-3 rounded-lg border transition-all cursor-pointer group ${notification.isRead
-                        ? 'bg-gray-50 border-gray-100 hover:bg-gray-100'
-                        : 'bg-blue-50 border-blue-100 shadow-sm hover:bg-blue-100'
+                      key={notif.id}
+                      onClick={() => !notif.isRead && markAsRead(notif.id)}
+                      className={`p-3.5 rounded-xl cursor-pointer transition-all ${notif.isRead
+                        ? 'bg-gray-50 hover:bg-gray-100'
+                        : 'bg-violet-50 border border-violet-100 hover:bg-violet-100'
                         }`}
-                      onClick={() => !notification.isRead && markAsRead(notification.id)}
                     >
-                      <div className="flex justify-between items-start gap-2">
-                        <p className={`text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
-                          {notification.message}
-                        </p>
-                        {!notification.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></span>
-                        )}
+                      <div className="flex items-start gap-3">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notif.isRead ? 'bg-gray-300' : 'bg-violet-500'}`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm leading-snug ${notif.isRead ? 'text-gray-500' : 'text-gray-800 font-medium'}`}>
+                            {notif.message}
+                          </p>
+                          <p className="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1">
+                            <Clock size={10} />
+                            {new Date(notif.createdAt).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                        <Clock size={10} />
-                        {new Date(notification.createdAt).toLocaleString()}
-                      </p>
                     </div>
                   ))
                 )}
@@ -344,151 +429,163 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          {/* My Enrolled Courses Section */}
-          <div className="lg:col-span-2">
-            <div className="glass-card p-6 h-full flex flex-col">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <BookOpen className="text-primary-600" size={20} />
-                My Enrollments
-              </h2>
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="text-gray-500 mt-2 text-sm">Loading courses...</p>
+          {/* Browse Courses */}
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-8">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <BookOpen className="text-blue-600" size={18} />
                 </div>
-              ) : enrolledCourses.length === 0 ? (
-                <div className="flex flex-col items-center justify-center flex-1 py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <BookOpen className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-gray-900 font-medium text-lg">No enrolled courses yet</h3>
-                  <p className="text-gray-500 text-sm mt-1">Courses you enroll in will appear here</p>
+                <h2 className="text-lg font-bold text-gray-900">Browse Courses</h2>
+              </div>
+              <Link
+                to="/student/view-courses"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+              >
+                See All <ArrowRight size={14} />
+              </Link>
+            </div>
+            <div className="p-6">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                </div>
+              ) : availableCourses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <BookOpen className="text-gray-200 mb-3" size={48} />
+                  <p className="text-gray-400">No courses available right now</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4 overflow-y-auto max-h-[400px] custom-scrollbar pr-2">
-                  {enrolledCourses.map((enrollment) => {
-                    const status = enrollment.status || 'APPROVED'
-                    const courseDetails = availableCourses.find(c => c.id === enrollment.courseId)
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {availableCourses.slice(0, 6).map(course => {
+                    const status = getEnrollmentStatus(course.id)
+                    const isEnrolled = status === 'APPROVED'
+                    const isPending = status === 'PENDING'
+                    const isRejected = status === 'REJECTED'
 
                     return (
-                      <div key={enrollment.id} className="flex p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all group">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0 mr-4 group-hover:scale-110 transition-transform">
-                          <BookOpen size={24} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors text-lg">{enrollment.courseName}</h3>
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${getStatusColor(status)}`}>
+                      <div key={course.id} className="rounded-xl border border-gray-100 p-5 hover:border-blue-200 hover:shadow-md transition-all group flex flex-col">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                            <BookOpen className="text-blue-600" size={20} />
+                          </div>
+                          {status && (
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-red-50 text-red-700 border-red-200'
+                              }`}>
                               {status}
                             </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                            {enrollment.courseDescription || 'No description available for this course.'}
-                          </p>
-                          <div className="flex items-center gap-4 mt-3 flex-wrap">
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                              <Calendar size={12} />
-                              <span>{new Date(enrollment.enrolledAt).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                              <Clock size={12} />
-                              <span>{enrollment.courseDuration ? `${enrollment.courseDuration} Hours` : 'N/A'}</span>
-                            </div>
-                            {courseDetails && (
-                              <>
-                                <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                  <User size={12} />
-                                  <span>{courseDetails.primaryTrainerName || 'No Trainer'}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                  <Layers size={12} />
-                                  <span>{courseDetails.modules ? courseDetails.modules.length : 0} Mods</span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center pl-4 border-l border-gray-50 ml-4">
-                          {status === 'APPROVED' ? (
-                            <button className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-all" title="Enrolled">
-                              <CheckCircle size={20} />
-                            </button>
-                          ) : status === 'PENDING' ? (
-                            <button className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-all" title="Pending Approval">
-                              <Clock size={20} />
-                            </button>
-                          ) : (
-                            <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Rejected">
-                              <XCircle size={20} />
-                            </button>
                           )}
                         </div>
+                        <h3 className="font-bold text-gray-900 text-sm mb-1.5">{course.name}</h3>
+                        <p className="text-xs text-gray-400 line-clamp-2 mb-4 flex-1">{course.description}</p>
+
+                        <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
+                          <span className="flex items-center gap-1"><Clock size={12} /> {course.duration}h</span>
+                          <span className="flex items-center gap-1"><Layers size={12} /> {course.modules?.length || 0} Modules</span>
+                        </div>
+
+                        <button
+                          onClick={() => isEnrolled ? navigate(`/student/courses/${course.id}`) : handleRequestEnrollment(course.id)}
+                          disabled={isPending || requestingCourse === course.id}
+                          className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2
+                            ${isEnrolled
+                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                              : isPending
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
+                            }`}
+                        >
+                          {requestingCourse === course.id ? (
+                            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              {isEnrolled ? 'View Course' : isPending ? 'Pending' : isRejected ? 'Re-request' : 'Enroll Now'}
+                              {isEnrolled && <Play size={14} />}
+                              {(!status || isRejected) && <CheckCircle size={14} />}
+                            </>
+                          )}
+                        </button>
                       </div>
                     )
                   })}
                 </div>
+              )
+              }
+            </div>
+          </div>
+
+          {/* Weekly Timetable */}
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <Calendar className="text-emerald-600" size={18} />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900">Weekly Timetable</h2>
+              </div>
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                {currentDay}
+              </span>
+            </div>
+            <div className="p-6">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 border-3 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-gray-100">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="py-3.5 px-4 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 w-28 border-r border-gray-100">
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} />
+                            Time
+                          </div>
+                        </th>
+                        {days.map((day) => (
+                          <th
+                            key={day}
+                            className={`py-3.5 px-4 text-center text-[11px] font-semibold uppercase tracking-wider min-w-[110px] ${day === currentDay
+                              ? 'bg-orange-50 text-orange-600'
+                              : 'text-gray-500'
+                              }`}
+                          >
+                            {day.slice(0, 3)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {timeSlots.map((timeSlot, index) => (
+                        <tr key={timeSlot} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-3.5 px-4 sticky left-0 bg-white z-10 border-r border-gray-100">
+                            <span className="text-[11px] font-bold text-gray-500">{timeSlot}</span>
+                          </td>
+                          {days.map((day) => {
+                            const module = getTimetableModule(index, day)
+                            return (
+                              <td key={day} className={`py-2.5 px-2.5 ${day === currentDay ? 'bg-orange-50/30' : ''}`}>
+                                {module ? (
+                                  <div className={`py-2.5 px-3 rounded-lg ${getSlotColor(module)} text-white text-center shadow-sm hover:scale-105 transition-transform cursor-pointer`}>
+                                    <span className="font-bold text-[11px] block truncate">{module}</span>
+                                  </div>
+                                ) : (
+                                  <div className="min-h-[40px]"></div>
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
-        </div>
-
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Calendar className="text-primary-600" size={20} />
-              Weekly Timetable
-            </h2>
-            <div className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              {currentDay}
-            </div>
-          </div>
-          {loading ? (
-            <p className="text-gray-500 text-center py-8">Loading timetable...</p>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-100">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="py-4 px-4 text-left font-semibold text-xs text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 w-32">
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} />
-                        Time
-                      </div>
-                    </th>
-                    {days.map((day) => (
-                      <th key={day} className={`py-4 px-4 text-center font-semibold text-xs text-gray-500 uppercase tracking-wider min-w-[120px] ${day === currentDay ? 'bg-blue-50/50 text-blue-600' : ''}`}>
-                        {day}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {timeSlots.map((timeSlot) => (
-                    <tr key={timeSlot} className="hover:bg-gray-50/30 transition-colors">
-                      <td className="py-4 px-4 sticky left-0 bg-white z-10 border-r border-gray-50">
-                        <span className="text-xs font-bold text-gray-600 block">{timeSlot}</span>
-                      </td>
-                      {days.map((day) => {
-                        const module = getTimetableModule(timeSlot, day)
-                        return (
-                          <td key={day} className={`py-3 px-3 ${day === currentDay ? 'bg-blue-50/10' : ''}`}>
-                            {module ? (
-                              <div className={`w-full py-3 rounded-lg ${getSlotColor(module)} ${getSlotTextColor(module)} flex flex-col items-center justify-center shadow-sm transform hover:scale-105 transition-all cursor-pointer group relative overflow-hidden`}>
-                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <span className="font-bold text-xs px-2 text-center z-10">{module}</span>
-                              </div>
-                            ) : (
-                              <div className="h-full min-h-[48px]"></div>
-                            )}
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </main>
     </div>

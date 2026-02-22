@@ -1,18 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/Sidebar'
 import Header from '../../components/Header'
+import { useSidebar } from '../../context/SidebarContext'
 import {
     BookOpen, Clock, Users, User, ArrowLeft, MoreVertical,
-    Edit, Trash2, FolderOpen, Calendar, Mail, FileText
+    Edit, Trash2, FolderOpen, Calendar, Mail, FileText, Upload, Download, Eye, X
 } from 'lucide-react'
-import { courseAPI, enrollmentAPI } from '../../api'
+import { courseAPI, enrollmentAPI, resourceAPI } from '../../api'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { ClipboardList } from 'lucide-react'
 
 const CourseDetails = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const syllabusInputRef = useRef(null)
+    const { isCollapsed } = useSidebar()
 
     const [course, setCourse] = useState(null)
     const [modules, setModules] = useState([])
@@ -20,11 +24,14 @@ const CourseDetails = () => {
     const [trainers, setTrainers] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('overview')
+    const [assignments, setAssignments] = useState([])
+    const [materials, setMaterials] = useState([])
     const [showEditModal, setShowEditModal] = useState(false)
     const [editFormData, setEditFormData] = useState({ name: '', description: '', duration: '' })
     const [saving, setSaving] = useState(false)
     const [showEditModuleModal, setShowEditModuleModal] = useState(false)
     const [editModuleFormData, setEditModuleFormData] = useState({ id: null, name: '', description: '', duration: '', orderNumber: '' })
+    const [uploadingSyllabus, setUploadingSyllabus] = useState(false)
 
     useEffect(() => {
         fetchCourseDetails()
@@ -33,10 +40,12 @@ const CourseDetails = () => {
     const fetchCourseDetails = async () => {
         try {
             setLoading(true)
-            const [courseRes, enrollmentsRes, trainersRes] = await Promise.all([
+            const [courseRes, enrollmentsRes, trainersRes, assRes, matRes] = await Promise.all([
                 courseAPI.getById(id),
                 enrollmentAPI.getByCourse(id),
-                courseAPI.getTrainers(id)
+                courseAPI.getTrainers(id),
+                resourceAPI.getAssignmentsByCourse(id),
+                resourceAPI.getMaterialsByCourse(id)
             ])
 
             setCourse(courseRes.data)
@@ -48,6 +57,8 @@ const CourseDetails = () => {
                 enrollmentId: e.id
             })))
             setTrainers(trainersRes.data)
+            setAssignments(assRes.data || [])
+            setMaterials(matRes.data || [])
         } catch (error) {
             console.error('Error fetching course details:', error)
             toast.error('Failed to load course details')
@@ -110,7 +121,7 @@ const CourseDetails = () => {
             name: module.name,
             description: module.description || '',
             duration: module.duration,
-            orderNumber: module.orderNumber || 1 // Fallback to 1 if missing
+            orderNumber: module.orderNumber || 1
         })
         setShowEditModuleModal(true)
     }
@@ -123,7 +134,7 @@ const CourseDetails = () => {
                 name: editModuleFormData.name,
                 description: editModuleFormData.description,
                 duration: parseInt(editModuleFormData.duration),
-                orderNumber: editModuleFormData.orderNumber || 1 // Ensure we send an order number
+                orderNumber: editModuleFormData.orderNumber || 1
             }
 
             await courseAPI.updateModule(editModuleFormData.id, payload)
@@ -139,11 +150,76 @@ const CourseDetails = () => {
         }
     }
 
+    const handleSyllabusUpload = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+
+        if (file.type !== 'application/pdf') {
+            toast.error('Please upload a PDF file only')
+            return
+        }
+
+        if (file.size > 20 * 1024 * 1024) {
+            toast.error('File size must be less than 20MB')
+            return
+        }
+
+        try {
+            setUploadingSyllabus(true)
+            const res = await courseAPI.uploadSyllabus(id, file)
+            setCourse(res.data)
+            toast.success('Syllabus uploaded successfully!')
+        } catch (error) {
+            console.error('Error uploading syllabus:', error)
+            toast.error('Failed to upload syllabus')
+        } finally {
+            setUploadingSyllabus(false)
+            if (syllabusInputRef.current) syllabusInputRef.current.value = ''
+        }
+    }
+
+    const handleDeleteSyllabus = async () => {
+        if (!window.confirm('Are you sure you want to remove the syllabus?')) return
+        try {
+            const res = await courseAPI.deleteSyllabus(id)
+            setCourse(res.data)
+            toast.success('Syllabus removed successfully')
+        } catch (error) {
+            toast.error('Failed to remove syllabus')
+        }
+    }
+
+    const handleDownloadSyllabus = async () => {
+        try {
+            const res = await courseAPI.downloadSyllabus(id)
+            const blob = new Blob([res.data], { type: 'application/pdf' })
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = course.syllabusFileName || 'syllabus.pdf'
+            a.click()
+            window.URL.revokeObjectURL(url)
+        } catch (error) {
+            toast.error('Failed to download syllabus')
+        }
+    }
+
+    const handleViewSyllabus = () => {
+        const token = localStorage.getItem('token')
+        const url = courseAPI.getSyllabusUrl(id)
+        // Open in new tab with auth - we'll fetch as blob and create object URL
+        courseAPI.downloadSyllabus(id).then(res => {
+            const blob = new Blob([res.data], { type: 'application/pdf' })
+            const objectUrl = window.URL.createObjectURL(blob)
+            window.open(objectUrl, '_blank')
+        }).catch(() => toast.error('Failed to open syllabus'))
+    }
+
     if (loading) {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="ADMIN" />
-                <div className="flex-1 flex flex-col ml-64">
+                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
@@ -157,7 +233,7 @@ const CourseDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="ADMIN" />
-                <div className="flex-1 flex flex-col ml-64">
+                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 p-8">
                         <div className="text-center py-12">
@@ -173,7 +249,7 @@ const CourseDetails = () => {
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
             <Sidebar userRole="ADMIN" />
-            <div className="flex-1 flex flex-col ml-64">
+            <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
                 <Header />
 
                 <div className="flex-1 overflow-auto p-8">
@@ -226,6 +302,12 @@ const CourseDetails = () => {
                                         <FolderOpen size={18} className="text-purple-500" />
                                         <span>{modules.length} Modules</span>
                                     </div>
+                                    {course.hasSyllabus && (
+                                        <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 text-green-700">
+                                            <FileText size={18} />
+                                            <span>Syllabus Uploaded</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -233,7 +315,6 @@ const CourseDetails = () => {
 
                     {/* Tabs Navigation */}
                     <div className="flex border-b border-gray-200 mb-8">
-                        {/* ... tabs same as before ... */}
                         <button
                             onClick={() => setActiveTab('overview')}
                             className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'overview'
@@ -242,6 +323,17 @@ const CourseDetails = () => {
                                 }`}
                         >
                             Modules & Curriculum
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('syllabus')}
+                            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'syllabus'
+                                ? 'border-orange-500 text-orange-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <FileText size={16} />
+                            Syllabus
+                            {course.hasSyllabus && <span className="w-2 h-2 bg-green-500 rounded-full"></span>}
                         </button>
                         <button
                             onClick={() => setActiveTab('students')}
@@ -261,6 +353,16 @@ const CourseDetails = () => {
                         >
                             Assigned Trainers
                         </button>
+                        <button
+                            onClick={() => setActiveTab('resources')}
+                            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'resources'
+                                ? 'border-orange-500 text-orange-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <ClipboardList size={16} />
+                            Learning Resources
+                        </button>
                     </div>
 
                     {/* Tab Content */}
@@ -269,7 +371,6 @@ const CourseDetails = () => {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-bold text-gray-900">Course Modules</h3>
-                                    {/* Add Module button could go here or link back to main edit modal */}
                                 </div>
 
                                 {modules.length === 0 ? (
@@ -315,7 +416,110 @@ const CourseDetails = () => {
                             </div>
                         )}
 
-                        {/* ... other tabs ... */}
+                        {/* Syllabus Tab */}
+                        {activeTab === 'syllabus' && (
+                            <div className="max-w-4xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <FileText className="text-orange-500" size={20} />
+                                        Course Syllabus
+                                    </h3>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="file"
+                                            ref={syllabusInputRef}
+                                            accept="application/pdf"
+                                            onChange={handleSyllabusUpload}
+                                            className="hidden"
+                                        />
+                                        <button
+                                            onClick={() => syllabusInputRef.current?.click()}
+                                            disabled={uploadingSyllabus}
+                                            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl font-medium text-sm hover:bg-orange-600 transition-all disabled:opacity-50 shadow-sm"
+                                        >
+                                            {uploadingSyllabus ? (
+                                                <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                            ) : (
+                                                <Upload size={16} />
+                                            )}
+                                            {course.hasSyllabus ? 'Replace Syllabus' : 'Upload Syllabus'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {course.hasSyllabus ? (
+                                    <div className="space-y-6">
+                                        {/* File Info Card */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
+                                                        <FileText size={28} className="text-red-500" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900">{course.syllabusFileName}</h4>
+                                                        <p className="text-sm text-gray-500 mt-0.5">PDF Document • Uploaded for this course</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={handleViewSyllabus}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-all"
+                                                    >
+                                                        <Eye size={16} /> View
+                                                    </button>
+                                                    <button
+                                                        onClick={handleDownloadSyllabus}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-all"
+                                                    >
+                                                        <Download size={16} /> Download
+                                                    </button>
+                                                    <button
+                                                        onClick={handleDeleteSyllabus}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-all"
+                                                    >
+                                                        <Trash2 size={16} /> Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Inline PDF Viewer */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                            <div className="p-4 border-b border-gray-50 flex items-center justify-between">
+                                                <h4 className="font-bold text-gray-700 flex items-center gap-2">
+                                                    <Eye size={16} /> Preview
+                                                </h4>
+                                            </div>
+                                            <div className="bg-gray-100 p-4">
+                                                <iframe
+                                                    src={`${courseAPI.getSyllabusUrl(id)}#toolbar=1`}
+                                                    className="w-full rounded-xl border border-gray-200 shadow-inner"
+                                                    style={{ height: '700px' }}
+                                                    title="Syllabus Preview"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-16 text-center">
+                                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <Upload size={36} className="text-gray-300" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-500 mb-2">No Syllabus Uploaded</h3>
+                                        <p className="text-gray-400 mb-6 max-w-md mx-auto">Upload a PDF syllabus for this course. Students and trainers will be able to view and download it.</p>
+                                        <button
+                                            onClick={() => syllabusInputRef.current?.click()}
+                                            disabled={uploadingSyllabus}
+                                            className="px-6 py-3 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition-all inline-flex items-center gap-2 shadow-md"
+                                        >
+                                            <Upload size={18} />
+                                            Upload PDF Syllabus
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {activeTab === 'students' && (
                             <div>
@@ -379,6 +583,74 @@ const CourseDetails = () => {
                                 )}
                             </div>
                         )}
+
+                        {activeTab === 'resources' && (
+                            <div className="space-y-10">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="space-y-6">
+                                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+                                            <FileText className="text-orange-500" />
+                                            Active Assignments ({assignments.length})
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {assignments.length > 0 ? (
+                                                assignments.map(ass => (
+                                                    <div key={ass.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div>
+                                                                <h4 className="font-black text-gray-900 uppercase tracking-tight">{ass.title}</h4>
+                                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Trainer: {ass.trainerName}</p>
+                                                            </div>
+                                                            <button className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-orange-600 hover:text-white transition-all">
+                                                                <Download size={18} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-400 border-t border-gray-50 pt-4">
+                                                            <span className="flex items-center gap-1.5"><Clock size={12} className="text-orange-500" /> Due: {new Date(ass.dueDate).toLocaleDateString()}</span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-gray-100">
+                                                    <p className="text-xs font-black text-gray-300 uppercase tracking-widest">No assignments found</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+                                            <BookOpen className="text-blue-500" />
+                                            Study Materials ({materials.length})
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {materials.length > 0 ? (
+                                                materials.map(mat => (
+                                                    <div key={mat.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div>
+                                                                <h4 className="font-black text-gray-900 uppercase tracking-tight">{mat.title}</h4>
+                                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Trainer: {mat.trainerName}</p>
+                                                            </div>
+                                                            <button className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-orange-600 hover:text-white transition-all">
+                                                                <Download size={18} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 border-t border-gray-50 pt-4">
+                                                            Shared: {new Date(mat.createdAt).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-gray-100">
+                                                    <p className="text-xs font-black text-gray-300 uppercase tracking-widest">No materials found</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -389,7 +661,7 @@ const CourseDetails = () => {
                             <div className="flex items-center justify-between p-6 border-b border-gray-100">
                                 <h2 className="text-xl font-bold text-gray-900">Edit Course</h2>
                                 <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600">
-                                    <Edit size={24} />
+                                    <X size={24} />
                                 </button>
                             </div>
                             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
@@ -451,7 +723,7 @@ const CourseDetails = () => {
                             <div className="flex items-center justify-between p-6 border-b border-gray-100">
                                 <h2 className="text-xl font-bold text-gray-900">Edit Module</h2>
                                 <button onClick={() => setShowEditModuleModal(false)} className="text-gray-400 hover:text-gray-600">
-                                    <Edit size={24} />
+                                    <X size={24} />
                                 </button>
                             </div>
                             <form onSubmit={handleEditModuleSubmit} className="p-6 space-y-4">

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../../components/Sidebar'
 import Header from '../../components/Header'
+import { useSidebar } from '../../context/SidebarContext'
 import Table from '../../components/ui/Table'
 import { Search, Plus, User, BookOpen, Calendar, CheckCircle, XCircle, Users, Check, Trash2, Eye, Clock } from 'lucide-react'
 import { enrollmentAPI, userAPI, courseAPI } from '../../api'
 
 const Enrollments = () => {
+  const { isCollapsed } = useSidebar()
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
   const [enrollments, setEnrollments] = useState([])
@@ -303,7 +305,7 @@ const Enrollments = () => {
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans relative">
       <Sidebar userRole="ADMIN" />
-      <div className="flex-1 ml-64 flex flex-col transition-all duration-300">
+      <div className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} flex flex-col transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8 relative">

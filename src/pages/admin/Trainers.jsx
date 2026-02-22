@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api, { userAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
 import Header from '../../components/Header'
+import { useSidebar } from '../../context/SidebarContext'
 import Table from '../../components/ui/Table'
-import { Plus, Mail, Trash2, Edit, X, AlertCircle, Loader } from 'lucide-react'
+import { Plus, Mail, Trash2, Edit, X, AlertCircle, Loader, Eye, User, Calendar, Shield, Briefcase, Award } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const Trainers = () => {
   const { isAdmin } = useAuth()
+  const navigate = useNavigate()
+  const { isCollapsed } = useSidebar()
   const [trainers, setTrainers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -25,6 +29,7 @@ const Trainers = () => {
   })
   const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
+  const [viewingProfile, setViewingProfile] = useState(null)
 
   const showToast = {
     success: (msg) => toast.success(msg),
@@ -184,12 +189,12 @@ const Trainers = () => {
       header: 'Profile',
       accessor: 'name',
       render: (item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/trainers/${item.id}`)}>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform">
             {item.name?.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-bold text-gray-900">{item.name}</p>
+            <p className="font-bold text-gray-900 hover:text-green-600 transition-colors">{item.name}</p>
             <p className="text-xs text-gray-500">ID: {item.id}</p>
           </div>
         </div>
@@ -225,7 +230,7 @@ const Trainers = () => {
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar userRole="ADMIN" />
 
-      <div className="flex-1 flex flex-col ml-64">
+      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8">
@@ -251,6 +256,13 @@ const Trainers = () => {
             }
             renderRow={(item) => (
               <>
+                <button
+                  onClick={() => navigate(`/admin/trainers/${item.id}`)}
+                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
+                  title="View Full Profile"
+                >
+                  <Eye size={18} />
+                </button>
                 <button
                   onClick={() => handleEdit(item)}
                   className="p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50"

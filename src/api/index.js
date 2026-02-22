@@ -84,6 +84,17 @@ export const courseAPI = {
   deleteModule: (moduleId) => api.delete(`/courses/modules/${moduleId}`),
   updateModule: (moduleId, data) => api.put(`/courses/modules/${moduleId}`, data),
   getTrainers: (courseId) => api.get(`/courses/${courseId}/trainers`),
+  uploadSyllabus: (courseId, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post(`/courses/${courseId}/syllabus`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  getSyllabusUrl: (courseId) => `${API_BASE_URL}/courses/${courseId}/syllabus`,
+  deleteSyllabus: (courseId) => api.delete(`/courses/${courseId}/syllabus`),
+  downloadSyllabus: (courseId) => api.get(`/courses/${courseId}/syllabus`, { responseType: 'blob' }),
+  getByTrainer: (trainerId) => api.get(`/courses/trainer/${trainerId}`),
 }
 
 // Enrollment APIs
@@ -118,6 +129,9 @@ export const schedulingAPI = {
   getSlotsByWeek: (weekId) => api.get(`/scheduling/weeks/${weekId}/slots`),
   getSlotsByTrainer: (trainerId) => api.get(`/scheduling/trainers/${trainerId}/slots`),
   deleteSlot: (slotId) => api.delete(`/scheduling/slots/${slotId}`),
+  updateSlotNotes: (slotId, notes) => api.put(`/scheduling/slots/${slotId}/notes`, notes, {
+    headers: { 'Content-Type': 'text/plain' }
+  }),
 }
 
 // Timetable APIs
@@ -136,6 +150,28 @@ export const notificationAPI = {
   getUnreadNotifications: (userId) => api.get(`/notifications/user/${userId}/unread`),
   markAsRead: (id) => api.put(`/notifications/${id}/read`),
   markAllAsRead: (userId) => api.put(`/notifications/user/${userId}/read-all`),
+}
+
+// Resource APIs (Assignments & Materials)
+export const resourceAPI = {
+  createAssignment: (formData) => api.post('/resources/assignments', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  createMaterial: (formData) => api.post('/resources/materials', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getAssignmentsByCourse: (courseId) => api.get(`/resources/assignments/course/${courseId}`),
+  getMaterialsByCourse: (courseId) => api.get(`/resources/materials/course/${courseId}`),
+  getAssignmentsByTrainer: (trainerId) => api.get(`/resources/assignments/trainer/${trainerId}`),
+  getMaterialsByTrainer: (trainerId) => api.get(`/resources/materials/trainer/${trainerId}`),
+  submitAssignment: (id, formData) => api.post(`/resources/assignments/${id}/submit`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getSubmissions: (id) => api.get(`/resources/assignments/${id}/submissions`),
+  deleteAssignment: (id) => api.delete(`/resources/assignments/${id}`),
+  deleteMaterial: (id) => api.delete(`/resources/materials/${id}`),
+  downloadAssignment: (id) => api.get(`/resources/assignments/${id}/download`, { responseType: 'blob' }),
+  downloadMaterial: (id) => api.get(`/resources/materials/${id}/download`, { responseType: 'blob' }),
 }
 
 export default api

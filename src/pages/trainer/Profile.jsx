@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api, { userAPI } from '../../api'
 import Sidebar from '../../components/Sidebar'
+import { useSidebar } from '../../context/SidebarContext'
 import { ArrowLeft, User, Mail, Phone, MapPin, AlertCircle, Loader, CheckCircle } from 'lucide-react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -10,6 +11,7 @@ import 'react-toastify/dist/ReactToastify.css'
 const TrainerProfile = () => {
   const { user, isTrainer } = useAuth()
   const navigate = useNavigate()
+  const { isCollapsed } = useSidebar()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -146,7 +148,7 @@ const TrainerProfile = () => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar userRole="TRAINER" />
 
-      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
+      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} overflow-hidden transition-all duration-300`}>
         {/* Top Navigation */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">

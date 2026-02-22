@@ -1,10 +1,12 @@
 import Sidebar from '../../components/Sidebar'
+import { useSidebar } from '../../context/SidebarContext'
 
 const AdminNotifications = () => {
+    const { isCollapsed } = useSidebar()
     return (
         <div className="flex bg-gray-50 min-h-screen">
             <Sidebar userRole="ADMIN" />
-            <div className="flex-1 ml-64 p-8">
+            <div className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} p-8 transition-all duration-300`}>
                 <header className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
                     <p className="text-gray-600 mt-2">Manage your notifications here.</p>

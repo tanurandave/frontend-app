@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/Sidebar'
 import Header from '../../components/Header'
+import { useSidebar } from '../../context/SidebarContext'
 import { Plus, BookOpen, Trash2, Edit, X, Loader, FolderOpen, Search, Clock, MoreVertical, LayoutGrid, List } from 'lucide-react'
 import { courseAPI } from '../../api'
 import { ToastContainer, toast } from 'react-toastify'
@@ -9,6 +10,7 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const Courses = () => {
   const navigate = useNavigate()
+  const { isCollapsed } = useSidebar()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -166,7 +168,7 @@ const Courses = () => {
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar userRole="ADMIN" />
-      <div className="flex-1 flex flex-col ml-64">
+      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8">

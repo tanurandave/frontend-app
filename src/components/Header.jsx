@@ -91,23 +91,23 @@ const Header = ({ title }) => {
                 <div className="flex items-center gap-4 relative" ref={notificationRef}>
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
-                        className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'}`}
+                        className={`p-2 rounded-xl transition-all ${showNotifications ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50 border border-transparent hover:border-orange-100'}`}
                     >
                         <Bell size={20} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-orange-600 rounded-full border-2 border-white animate-pulse"></span>
                         )}
                     </button>
 
                     {/* Notification Dropdown */}
                     {showNotifications && (
-                        <div className="absolute top-12 right-0 w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
+                        <div className="absolute top-14 right-0 w-96 bg-white rounded-2xl shadow-2xl shadow-orange-100/50 border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                                 <h3 className="font-bold text-gray-900">Notifications</h3>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markAllRead}
-                                        className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-lg transition-colors"
+                                        className="text-[10px] font-black uppercase tracking-widest text-orange-600 hover:text-orange-700 flex items-center gap-1 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors"
                                     >
                                         <Check size={12} /> Mark all read
                                     </button>
@@ -116,28 +116,28 @@ const Header = ({ title }) => {
 
                             <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                                 {notifications.length === 0 ? (
-                                    <div className="p-8 text-center text-gray-400 flex flex-col items-center">
-                                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                                            <Bell size={20} className="text-gray-300" />
+                                    <div className="p-12 text-center text-gray-400 flex flex-col items-center">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
+                                            <Bell size={24} className="text-gray-200" />
                                         </div>
-                                        <p className="text-sm">No notifications yet</p>
+                                        <p className="text-sm font-medium">No alerts today</p>
                                     </div>
                                 ) : (
                                     <div className="divide-y divide-gray-50">
                                         {notifications.map((notification) => (
                                             <div
                                                 key={notification.id}
-                                                className={`p-4 hover:bg-gray-50 transition-colors flex gap-3 ${!notification.read ? 'bg-orange-50/30' : ''}`}
+                                                className={`p-5 hover:bg-gray-50 transition-colors flex gap-4 ${!notification.read ? 'bg-orange-50/20' : ''}`}
                                             >
-                                                <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!notification.read ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                    <Bell size={14} />
+                                                <div className={`mt-1 w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${!notification.read ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                    <Bell size={16} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-sm leading-snug mb-1 ${!notification.read ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+                                                    <p className={`text-sm leading-relaxed mb-1.5 ${!notification.read ? 'font-bold text-gray-900' : 'text-gray-600 font-medium'}`}>
                                                         {notification.message}
                                                     </p>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-400">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                                                             {timeAgo(notification.createdAt)}
                                                         </span>
                                                         {!notification.read && (
@@ -146,9 +146,9 @@ const Header = ({ title }) => {
                                                                     e.stopPropagation();
                                                                     markAsRead(notification.id);
                                                                 }}
-                                                                className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+                                                                className="text-xs text-orange-600 hover:text-orange-700 font-black uppercase tracking-tighter"
                                                             >
-                                                                Mark read
+                                                                Dismiss
                                                             </button>
                                                         )}
                                                     </div>
@@ -159,15 +159,15 @@ const Header = ({ title }) => {
                                 )}
                             </div>
 
-                            <div className="p-3 border-t border-gray-50 bg-gray-50/50 text-center">
-                                <button className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">
-                                    View Service Status
+                            <div className="p-4 border-t border-gray-50 bg-gray-50/50 text-center">
+                                <button className="text-xs font-black text-gray-400 hover:text-orange-600 uppercase tracking-widest transition-colors">
+                                    View System Logs
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    <button className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors">
+                    <button className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl border border-transparent hover:border-orange-100 transition-all">
                         <Settings size={20} />
                     </button>
                 </div>
