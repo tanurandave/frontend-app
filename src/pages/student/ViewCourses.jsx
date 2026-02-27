@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom'
 const ViewCourses = () => {
     const { user } = useAuth()
     const navigate = useNavigate()
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
     const [courses, setCourses] = useState([])
     const [enrollments, setEnrollments] = useState([])
     const [loading, setLoading] = useState(true)
@@ -94,7 +94,7 @@ const ViewCourses = () => {
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
             <Sidebar />
-            <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} p-8 transition-all duration-300`}>
+            <main className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} p-8 transition-all duration-300`}>
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Available Courses</h1>

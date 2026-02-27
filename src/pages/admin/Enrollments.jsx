@@ -3,11 +3,11 @@ import Sidebar from '../../components/Sidebar'
 import Header from '../../components/Header'
 import { useSidebar } from '../../context/SidebarContext'
 import Table from '../../components/ui/Table'
-import { Search, Plus, User, BookOpen, Calendar, CheckCircle, XCircle, Users, Check, Trash2, Eye, Clock } from 'lucide-react'
+import { Search, Plus, User, BookOpen, Calendar, CheckCircle, XCircle, Users, Check, Trash2, Eye, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { enrollmentAPI, userAPI, courseAPI } from '../../api'
 
 const Enrollments = () => {
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
   const [enrollments, setEnrollments] = useState([])
@@ -22,11 +22,18 @@ const Enrollments = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState([])
   const [selectedCourse, setSelectedCourse] = useState('')
   const [studentSearchTerm, setStudentSearchTerm] = useState('')
+  // pagination for student selection
+  const [studentPage, setStudentPage] = useState(1)
+  const studentItemsPerPage = 10
 
   // Table Search
   const [searchTerm, setSearchTerm] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+
+  // pagination for enrollment table
+  const [enrollPage, setEnrollPage] = useState(1)
+  const enrollItemsPerPage = 10
 
   useEffect(() => {
     fetchData()
@@ -216,6 +223,7 @@ const Enrollments = () => {
     }
   })
 
+  // apply sorting before pagination so slice reflects order
   if (sortConfig.key) {
     filteredEnrollments.sort((a, b) => {
       let aValue, bValue
@@ -233,17 +241,39 @@ const Enrollments = () => {
       if (aValue < bValue) {
         return sortConfig.direction === 'asc' ? -1 : 1
       }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1
-      }
-      return 0
     })
   }
+
+  // enrollment pagination calculations
+  const totalEnrollPages = Math.max(1, Math.ceil(filteredEnrollments.length / enrollItemsPerPage))
+  useEffect(() => {
+    if (enrollPage > totalEnrollPages) setEnrollPage(totalEnrollPages)
+  }, [filteredEnrollments, totalEnrollPages, enrollPage])
+  useEffect(() => {
+    setEnrollPage(1)
+  }, [searchTerm, activeTab])
+  const pagedEnrollments = filteredEnrollments.slice((enrollPage - 1) * enrollItemsPerPage, enrollPage * enrollItemsPerPage)
 
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(studentSearchTerm.toLowerCase())
   )
+
+  // when search value changes reset page
+  useEffect(() => {
+    setStudentPage(1)
+  }, [studentSearchTerm])
+
+  // make sure page resets or stays valid when filter changes
+  const totalStudentPages = Math.max(1, Math.ceil(filteredStudents.length / studentItemsPerPage))
+  useEffect(() => {
+    if (studentPage > totalStudentPages) {
+      setStudentPage(totalStudentPages)
+    }
+  }, [filteredStudents, totalStudentPages, studentPage])
+
+  const pagedStudents = filteredStudents.slice((studentPage - 1) * studentItemsPerPage,
+                                              studentPage * studentItemsPerPage)
 
   const columns = [
     {
@@ -305,7 +335,9 @@ const Enrollments = () => {
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans relative">
       <Sidebar userRole="ADMIN" />
-      <div className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} flex flex-col transition-all duration-300`}>
+      {/* Keep a small left margin for the collapsed icons-only sidebar so page content doesn't sit under it */}
+      {/* When sidebar is pinned or currently hovered, keep page beside full sidebar width; otherwise leave space for icons-only (ml-20) */}
+      <div className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} flex flex-col transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8 relative">
@@ -417,7 +449,7 @@ const Enrollments = () => {
                   />
                 </div>
 
-                <div className="flex-1 overflow-y-auto border border-gray-200 rounded-xl bg-gray-50 p-3 custom-scrollbar">
+                <div className="flex-1 border border-gray-200 rounded-xl bg-gray-50 p-3">
                   {filteredStudents.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                       <User size={40} className="mb-3 opacity-30" />
@@ -425,7 +457,7 @@ const Enrollments = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {filteredStudents.map(student => (
+                      {pagedStudents.map(student => (
                         <div
                           key={student.id}
                           onClick={() => toggleStudent(student.id)}
@@ -453,6 +485,48 @@ const Enrollments = () => {
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* pagination for student search list */}
+                  {filteredStudents.length > studentItemsPerPage && (
+                    <div className="mt-4 flex items-center gap-1">
+                      <button
+                        disabled={studentPage === 1}
+                        onClick={() => setStudentPage(prev => prev - 1)}
+                        className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-500"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+
+                      {/* numeric buttons logic, show up to 5 pages around current */}
+                      {[...Array(totalStudentPages)].map((_, idx) => {
+                        const pg = idx + 1
+                        // simple windowing: show 5 pages centered
+                        const start = Math.max(1, studentPage - 2)
+                        const end = Math.min(totalStudentPages, start + 4)
+                        if (pg < start || pg > end) return null
+                        return (
+                          <button
+                            key={pg}
+                            onClick={() => setStudentPage(pg)}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${studentPage === pg
+                              ? 'bg-orange-500 text-white shadow-sm'
+                              : 'text-gray-600 hover:bg-gray-100'
+                              }`}
+                          >
+                            {pg}
+                          </button>
+                        )
+                      })}
+
+                      <button
+                        disabled={studentPage === totalStudentPages}
+                        onClick={() => setStudentPage(prev => prev + 1)}
+                        className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-500"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -573,7 +647,7 @@ const Enrollments = () => {
           <Table
             title={activeTab === 'active' ? "Active Enrollments" : "Pending Requests"}
             columns={columns}
-            data={filteredEnrollments}
+            data={pagedEnrollments}
             searchTerm={searchTerm}
             onSearch={setSearchTerm}
             sortConfig={sortConfig}
@@ -581,6 +655,13 @@ const Enrollments = () => {
             selectedIds={selectedEnrollmentIds}
             onSelectAll={handleSelectAll}
             onSelectRow={handleSelectRow}
+            pagination={{
+              currentPage: enrollPage,
+              totalPages: totalEnrollPages,
+              totalItems: filteredEnrollments.length,
+              itemsPerPage: enrollItemsPerPage,
+              onPageChange: (p) => setEnrollPage(p)
+            }}
             actions={
               selectedEnrollmentIds.length > 0 ? (
                 <button

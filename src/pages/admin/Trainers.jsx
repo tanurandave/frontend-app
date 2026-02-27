@@ -13,7 +13,7 @@ import 'react-toastify/dist/ReactToastify.css'
 const Trainers = () => {
   const { isAdmin } = useAuth()
   const navigate = useNavigate()
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const [trainers, setTrainers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -230,7 +230,7 @@ const Trainers = () => {
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar userRole="ADMIN" />
 
-      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8">

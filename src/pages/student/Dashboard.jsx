@@ -13,7 +13,7 @@ import { toast } from 'react-toastify'
 
 const StudentDashboard = () => {
   const { user } = useAuth()
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const navigate = useNavigate()
   const [enrolledCourses, setEnrolledCourses] = useState([])
   const [availableCourses, setAvailableCourses] = useState([])
@@ -187,7 +187,7 @@ const StudentDashboard = () => {
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans">
       <Sidebar />
-      <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+      <main className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
 
         {/* Top Header Bar */}
         <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">

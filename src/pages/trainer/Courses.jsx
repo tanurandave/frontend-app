@@ -12,7 +12,7 @@ import 'react-toastify/dist/ReactToastify.css'
 const TrainerCourses = () => {
     const { user, isTrainer, loading: authLoading } = useAuth()
     const navigate = useNavigate()
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
     const [courses, setCourses] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -49,7 +49,7 @@ const TrainerCourses = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="TRAINER" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 flex items-center justify-center">
                         <Loader className="animate-spin text-blue-600" size={48} />
@@ -63,7 +63,7 @@ const TrainerCourses = () => {
         <div className="flex bg-gray-50 min-h-screen">
             <Sidebar userRole="TRAINER" />
 
-            <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+            <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                 <Header />
 
                 <div className="flex-1 overflow-auto p-8 custom-scrollbar">

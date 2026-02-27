@@ -16,7 +16,7 @@ const TrainerCourseDetails = () => {
     const { id } = useParams()
     const navigate = useNavigate()
     const { isTrainer } = useAuth()
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
     const [course, setCourse] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -72,7 +72,7 @@ const TrainerCourseDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="TRAINER" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 flex items-center justify-center">
                         <Loader className="animate-spin text-blue-600" size={48} />
@@ -86,7 +86,7 @@ const TrainerCourseDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="TRAINER" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 p-8 text-center bg-white rounded-3xl m-8 shadow-sm">
                         <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
@@ -108,7 +108,7 @@ const TrainerCourseDetails = () => {
         <div className="flex bg-gray-50 min-h-screen">
             <Sidebar userRole="TRAINER" />
 
-            <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+            <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                 <Header />
 
                 <div className="flex-1 overflow-auto p-8">

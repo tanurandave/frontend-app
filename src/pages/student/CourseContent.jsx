@@ -11,7 +11,7 @@ const CourseContent = () => {
     const { id } = useParams()
     const { user } = useAuth()
     const navigate = useNavigate()
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
     const [course, setCourse] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeModule, setActiveModule] = useState(null)
@@ -20,6 +20,10 @@ const CourseContent = () => {
     const [assignments, setAssignments] = useState([])
     const [materials, setMaterials] = useState([])
     const [activeTab, setActiveTab] = useState('content') // 'content', 'assignments', 'materials'
+
+    // when student views a specific module, only show resources tied to that module
+    const filteredAssignments = activeModule ? assignments.filter(a => a.moduleId === activeModule.id) : assignments
+    const filteredMaterials = activeModule ? materials.filter(m => m.moduleId === activeModule.id) : materials
 
     useEffect(() => {
         if (user?.id && id) {
@@ -98,7 +102,7 @@ const CourseContent = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar />
-                <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} p-8 flex items-center justify-center transition-all duration-300`}>
+                <main className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} p-8 flex items-center justify-center transition-all duration-300`}>
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                 </main>
             </div>
@@ -108,7 +112,7 @@ const CourseContent = () => {
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
             <Sidebar />
-            <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} p-8 transition-all duration-300`}>
+            <main className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} p-8 transition-all duration-300`}>
                 <button
                     onClick={() => navigate(-1)}
                     className="flex items-center gap-2 text-gray-500 hover:text-primary-600 mb-6 transition-colors"
@@ -129,13 +133,13 @@ const CourseContent = () => {
                             onClick={() => setActiveTab('assignments')}
                             className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-orange-600 text-white shadow-lg shadow-orange-200' : 'text-gray-400 hover:bg-gray-50'}`}
                         >
-                            Assignments ({assignments.length})
+                            Assignments ({filteredAssignments.length})
                         </button>
                         <button
                             onClick={() => setActiveTab('materials')}
                             className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'materials' ? 'bg-orange-600 text-white shadow-lg shadow-orange-200' : 'text-gray-400 hover:bg-gray-50'}`}
                         >
-                            Study Materials ({materials.length})
+                            Study Materials ({filteredMaterials.length})
                         </button>
                     </div>
                 </div>
@@ -214,8 +218,8 @@ const CourseContent = () => {
 
                         {activeTab === 'assignments' && (
                             <div className="space-y-4">
-                                {assignments.length > 0 ? (
-                                    assignments.map(ass => (
+                                {filteredAssignments.length > 0 ? (
+                                    filteredAssignments.map(ass => (
                                         <div key={ass.id} className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-4">
@@ -268,8 +272,8 @@ const CourseContent = () => {
 
                         {activeTab === 'materials' && (
                             <div className="space-y-4">
-                                {materials.length > 0 ? (
-                                    materials.map(mat => (
+                                {filteredMaterials.length > 0 ? (
+                                    filteredMaterials.map(mat => (
                                         <div key={mat.id} className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-4">

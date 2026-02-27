@@ -9,7 +9,7 @@ import { toast } from 'react-toastify'
 
 const Requests = () => {
     const { user } = useAuth()
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
     const [enrollments, setEnrollments] = useState([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('ALL')
@@ -56,7 +56,7 @@ const Requests = () => {
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
             <Sidebar />
-            <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} p-8 transition-all duration-300`}>
+            <main className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} p-8 transition-all duration-300`}>
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">

@@ -13,10 +13,13 @@ import 'react-toastify/dist/ReactToastify.css'
 const Students = () => {
   const { isAdmin } = useAuth()
   const navigate = useNavigate()
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  // pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -204,6 +207,18 @@ const Students = () => {
     student.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // adjust current page if filtering or deletion makes current page invalid
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredStudents.length / itemsPerPage))
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [filteredStudents, currentPage])
+
+  const totalItems = filteredStudents.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const displayedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
   const columns = [
     {
       header: 'Profile',
@@ -250,14 +265,14 @@ const Students = () => {
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar userRole="ADMIN" />
 
-      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8">
           <Table
             title="Students List"
             columns={columns}
-            data={filteredStudents}
+            data={displayedStudents}
             searchTerm={searchTerm}
             onSearch={setSearchTerm}
             actions={
@@ -311,11 +326,11 @@ const Students = () => {
               </>
             )}
             pagination={{
-              currentPage: 1,
-              totalPages: 1, // Implement real pagination if needed
-              totalItems: filteredStudents.length,
-              itemsPerPage: 10,
-              onPageChange: () => { }
+              currentPage,
+              totalPages,
+              totalItems,
+              itemsPerPage,
+              onPageChange: (page) => setCurrentPage(page)
             }}
           />
         </div>

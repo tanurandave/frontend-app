@@ -22,7 +22,7 @@ import 'react-toastify/dist/ReactToastify.css'
 const TrainerDashboard = () => {
   const { user, isTrainer, loading: authLoading } = useAuth()
   const navigate = useNavigate()
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const [stats, setStats] = useState({
     assignedSlots: 0,
     students: 0,
@@ -111,7 +111,7 @@ const TrainerDashboard = () => {
     <div className="flex h-screen bg-[#F8F9FA]">
       <Sidebar userRole="TRAINER" />
 
-      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} overflow-hidden transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} overflow-hidden transition-all duration-300`}>
         <Header />
 
         <main className="flex-1 overflow-auto p-8 custom-scrollbar">

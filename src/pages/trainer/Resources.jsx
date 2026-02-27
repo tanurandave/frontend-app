@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import { toast, ToastContainer } from 'react-toastify'
 
 const TrainerResources = () => {
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
     const { user } = useAuth()
     const [assignments, setAssignments] = useState([])
     const [materials, setMaterials] = useState([])
@@ -68,7 +68,7 @@ const TrainerResources = () => {
     return (
         <div className="flex min-h-screen bg-[#F8FAFC]">
             <Sidebar />
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+            <div className={`flex-1 flex flex-col transition-all duration-300 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'}`}>
                 <Header title="Resource Management" />
                 <main className="p-8">
                     <div className="flex justify-between items-center mb-8 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">

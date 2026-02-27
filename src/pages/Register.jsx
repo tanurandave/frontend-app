@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { showToast } from '../utils/toast'
 import { Eye, EyeOff, Loader2, Check } from 'lucide-react'
 import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+// import 'react-toastify/dist/ReactToastify.css'
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,7 +17,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+
   const { register } = useAuth()
   const navigate = useNavigate()
 
@@ -90,7 +90,7 @@ const Register = () => {
         <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl"></div>
-        
+
         <div className="relative z-10 flex flex-col justify-center items-center w-full text-white p-12">
           <div className="text-center">
             <h1 className="text-5xl font-bold mb-6">Join Training Hub</h1>
@@ -197,7 +197,7 @@ const Register = () => {
                 {formData.password && (
                   <div className="mt-2">
                     <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full ${getStrengthColor()} transition-all duration-300`}
                         style={{ width: `${passwordStrength()}%` }}
                       ></div>

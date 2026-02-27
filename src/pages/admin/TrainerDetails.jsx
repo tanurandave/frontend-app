@@ -15,7 +15,7 @@ import { Download, ClipboardList } from 'lucide-react'
 const TrainerDetails = () => {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
 
     const [trainer, setTrainer] = useState(null)
     const [assignedCourses, setAssignedCourses] = useState([])
@@ -57,7 +57,7 @@ const TrainerDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="ADMIN" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4">
@@ -74,7 +74,7 @@ const TrainerDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="ADMIN" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 flex flex-col items-center justify-center p-8">
                         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center max-w-md">
@@ -100,7 +100,7 @@ const TrainerDetails = () => {
         <div className="flex bg-gray-50 min-h-screen">
             <Sidebar userRole="ADMIN" />
 
-            <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+            <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                 <Header />
 
                 <div className="flex-1 overflow-auto p-8">

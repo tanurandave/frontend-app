@@ -12,7 +12,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const Scheduling = () => {
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const [weeks, setWeeks] = useState([])
   const [currentWeek, setCurrentWeek] = useState(null)
   const [slots, setSlots] = useState([])
@@ -172,7 +172,7 @@ const Scheduling = () => {
     return (
       <div className="flex bg-gray-50 min-h-screen">
         <Sidebar userRole="ADMIN" />
-        <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+        <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
           <Header />
           <div className="flex-1 flex items-center justify-center">
             <Loader className="animate-spin text-primary-600" size={48} />
@@ -186,7 +186,7 @@ const Scheduling = () => {
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar userRole="ADMIN" />
 
-      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         <Header />
 
         <div className="flex-1 overflow-auto p-8">

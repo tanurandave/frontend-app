@@ -16,7 +16,7 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth()
-  const { isCollapsed } = useSidebar()
+  const { isPinned, isHovering } = useSidebar()
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTrainers: 0,
@@ -119,7 +119,7 @@ const Dashboard = () => {
     return (
       <div className="flex bg-gray-50 min-h-screen">
         <Sidebar userRole="ADMIN" />
-        <div className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} flex items-center justify-center transition-all duration-300`}>
+        <div className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} flex items-center justify-center transition-all duration-300`}>
           <Loader className="animate-spin text-orange-500" size={48} />
         </div>
       </div>
@@ -130,7 +130,7 @@ const Dashboard = () => {
     <div className="flex bg-gray-50 min-h-screen font-sans">
       <Sidebar userRole="ADMIN" />
 
-      <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} overflow-hidden transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} overflow-hidden transition-all duration-300`}>
         <Header />
 
         <main className="flex-1 overflow-y-auto p-8">

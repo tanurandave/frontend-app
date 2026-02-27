@@ -16,7 +16,7 @@ const CourseDetails = () => {
     const { id } = useParams()
     const navigate = useNavigate()
     const syllabusInputRef = useRef(null)
-    const { isCollapsed } = useSidebar()
+    const { isPinned, isHovering } = useSidebar()
 
     const [course, setCourse] = useState(null)
     const [modules, setModules] = useState([])
@@ -219,7 +219,7 @@ const CourseDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="ADMIN" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
@@ -233,7 +233,7 @@ const CourseDetails = () => {
         return (
             <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar userRole="ADMIN" />
-                <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+                <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                     <Header />
                     <div className="flex-1 p-8">
                         <div className="text-center py-12">
@@ -249,7 +249,7 @@ const CourseDetails = () => {
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
             <Sidebar userRole="ADMIN" />
-            <div className={`flex-1 flex flex-col ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300`}>
+            <div className={`flex-1 flex flex-col ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
                 <Header />
 
                 <div className="flex-1 overflow-auto p-8">
