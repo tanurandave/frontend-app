@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Sidebar from '../../components/Sidebar'
 import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
-import { BookOpen, Clock, User, Layers, CheckCircle, Search, Play, FileText, Download } from 'lucide-react'
+import { BookOpen, Clock, User, Layers, CheckCircle, Search, Play, FileText, Download, X } from 'lucide-react'
 import { courseAPI, enrollmentAPI } from '../../api'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
@@ -107,8 +107,16 @@ const ViewCourses = () => {
                             placeholder="Search courses..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all shadow-sm"
+                            className="w-full pl-10 pr-9 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all shadow-sm"
                         />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X size={15} />
+                            </button>
+                        )}
                     </div>
                 </header>
 

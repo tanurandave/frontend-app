@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, Eye, Edit, Trash2, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Eye, Edit, Trash2, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react'
 
 const Table = ({
     title,
@@ -31,8 +31,16 @@ const Table = ({
                             placeholder={`Search ${title}...`}
                             value={searchTerm}
                             onChange={(e) => onSearch && onSearch(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-blue-100 rounded-full text-sm text-gray-600 focus:outline-none focus:border-primary-500 w-64"
+                            className="pl-10 pr-8 py-2 border border-blue-100 rounded-full text-sm text-gray-600 focus:outline-none focus:border-primary-500 w-64"
                         />
+                        {searchTerm && (
+                            <button
+                                onClick={() => onSearch && onSearch('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
                     </div>
 
                     {onSort && (

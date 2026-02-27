@@ -4,7 +4,7 @@ import { useSidebar } from '../../context/SidebarContext'
 const TrainerNotifications = () => {
     const { isPinned, isHovering } = useSidebar()
     return (
-        <div className="flex bg-gray-50 min-h-screen">
+        <div className="flex bg-gray-50 min-h-screen overflow-hidden">
             <Sidebar userRole="TRAINER" />
             <div className={`flex-1 ${(isPinned || isHovering) ? 'ml-64' : 'ml-20'} p-8 transition-all duration-300`}>
                 <header className="mb-8">

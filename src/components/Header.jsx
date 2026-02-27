@@ -5,6 +5,7 @@ import { notificationAPI } from '../api'
 
 const Header = ({ title }) => {
     const { user } = useAuth()
+    const [headerSearch, setHeaderSearch] = useState('')
     const [notifications, setNotifications] = useState([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [showNotifications, setShowNotifications] = useState(false)
@@ -81,8 +82,18 @@ const Header = ({ title }) => {
                     <input
                         type="text"
                         placeholder="Search.."
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-all"
+                        value={headerSearch}
+                        onChange={(e) => setHeaderSearch(e.target.value)}
+                        className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border-none rounded-xl text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-all"
                     />
+                    {headerSearch && (
+                        <button
+                            onClick={() => setHeaderSearch('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -114,7 +125,7 @@ const Header = ({ title }) => {
                                 )}
                             </div>
 
-                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                            <div className="max-h-[400px] overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                 {notifications.length === 0 ? (
                                     <div className="p-12 text-center text-gray-400 flex flex-col items-center">
                                         <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">

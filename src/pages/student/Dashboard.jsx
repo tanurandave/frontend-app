@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   BookOpen, Clock, Calendar, Award, Bell, CheckCircle, XCircle,
   User, Layers, Play, Search, TrendingUp, ArrowRight, Settings,
-  BarChart3, GraduationCap
+  BarChart3, GraduationCap, X
 } from 'lucide-react'
 import { enrollmentAPI, timetableAPI, notificationAPI, courseAPI } from '../../api'
 import { toast } from 'react-toastify'
@@ -21,6 +21,7 @@ const StudentDashboard = () => {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [requestingCourse, setRequestingCourse] = useState(null)
+  const [dashSearch, setDashSearch] = useState('')
 
   useEffect(() => {
     if (user?.id) {
@@ -197,8 +198,18 @@ const StudentDashboard = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all"
+                value={dashSearch}
+                onChange={(e) => setDashSearch(e.target.value)}
+                className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all"
               />
+              {dashSearch && (
+                <button
+                  onClick={() => setDashSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <button
@@ -300,7 +311,7 @@ const StudentDashboard = () => {
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+                  <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {enrolledCourses.map((enrollment) => {
                       const status = enrollment.status || 'APPROVED'
                       const courseDetails = availableCourses.find(c => c.id === enrollment.courseId)
@@ -388,7 +399,7 @@ const StudentDashboard = () => {
                   </button>
                 )}
               </div>
-              <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+              <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {loading ? (
                   <div className="flex justify-center py-12">
                     <div className="w-7 h-7 border-3 border-violet-200 border-t-violet-500 rounded-full animate-spin"></div>
