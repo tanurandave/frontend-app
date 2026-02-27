@@ -142,11 +142,11 @@ const Dashboard = () => {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {statCards.map((stat, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div key={index} className="bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
                     <p className="text-gray-500 font-medium">{stat.label}</p>
-                    <div className="p-2 bg-orange-50 rounded-lg text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                    <div className="p-2 bg-orange-50 rounded-sm text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors">
                       <stat.icon size={20} />
                     </div>
                   </div>

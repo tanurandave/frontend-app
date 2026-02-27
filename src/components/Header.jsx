@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Bell, Settings, X, Check, User as UserIcon, Calendar, BookOpen } from 'lucide-react'
+import { Search, Bell, Settings, X, Check, User as UserIcon, Calendar, BookOpen, Menu } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useSidebar } from '../context/SidebarContext'
 import { notificationAPI } from '../api'
 
 const Header = ({ title }) => {
     const { user } = useAuth()
+    const { setMobileOpen } = useSidebar()
     const [headerSearch, setHeaderSearch] = useState('')
     const [notifications, setNotifications] = useState([])
     const [unreadCount, setUnreadCount] = useState(0)
@@ -74,7 +76,16 @@ const Header = ({ title }) => {
     }
 
     return (
-        <div className="bg-white px-8 py-4 flex items-center justify-between border-b border-gray-100 sticky top-0 z-40">
+        <div className="bg-white px-4 md:px-8 py-4 flex items-center gap-3 justify-between border-b border-gray-100 sticky top-0 z-40">
+            {/* Hamburger – mobile only */}
+            <button
+                onClick={() => setMobileOpen(true)}
+                className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors shrink-0"
+                aria-label="Open menu"
+            >
+                <Menu size={20} />
+            </button>
+
             {/* Search */}
             <div className="flex-1 max-w-xl">
                 <div className="relative">
@@ -98,7 +109,7 @@ const Header = ({ title }) => {
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-6 ml-4">
+            <div className="flex items-center gap-3 md:gap-6 shrink-0">
                 <div className="flex items-center gap-4 relative" ref={notificationRef}>
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
@@ -178,7 +189,7 @@ const Header = ({ title }) => {
                         </div>
                     )}
 
-                    <button className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl border border-transparent hover:border-orange-100 transition-all">
+                    <button className="hidden md:flex p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl border border-transparent hover:border-orange-100 transition-all">
                         <Settings size={20} />
                     </button>
                 </div>

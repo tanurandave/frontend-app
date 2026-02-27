@@ -27,6 +27,15 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* ── Mobile: sidebar is hidden so remove the desktop push margins ── */
+@media (max-width: 767px) {
+
+  .ml-20,
+  .ml-64 {
+    margin-left: 0 !important;
+  }
+}
+
 @layer components {
   .input-field {
     @apply w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition bg-white text-gray-900;

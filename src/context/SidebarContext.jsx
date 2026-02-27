@@ -14,6 +14,8 @@ export const SidebarProvider = ({ children }) => {
     })
 
     const [isHovering, setIsHovering] = useState(false)
+    // Mobile drawer open/close state
+    const [mobileOpen, setMobileOpen] = useState(false)
 
     useEffect(() => {
         try {
@@ -36,7 +38,7 @@ export const SidebarProvider = ({ children }) => {
     }
 
     return (
-        <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed, toggleSidebar, isPinned, setIsPinned, togglePin, isHovering, setIsHovering }}>
+        <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed, toggleSidebar, isPinned, setIsPinned, togglePin, isHovering, setIsHovering, mobileOpen, setMobileOpen }}>
             {children}
         </SidebarContext.Provider>
     )
